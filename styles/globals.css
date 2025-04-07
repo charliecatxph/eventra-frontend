@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@import "tailwindcss";
+
+
+.geist {
+  font-family: "Geist", sans-serif;
+}
+
+.imbue {
+  font-family: "Imbue", serif;
+}
+
+.inter {
+  font-family: "Inter", sans-serif;
+}
+
+.alt-dura {
+  background: linear-gradient(to right, oklch(0.596 0.145 163.225), transparent);
+}
+
+.aur {
+  animation: 2s kst infinite;
+}
+
+@keyframes kst {
+  0% {
+    bottom: -100%;
+    left: -100%;
+  }
+  100% {
+    bottom: 100%;
+    left: 100%;
+  }
+}
+
+.eventra-container {
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.eventra-container-narrow {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+button {
+  cursor: pointer;
+}

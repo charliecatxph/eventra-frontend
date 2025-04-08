@@ -408,7 +408,7 @@ export default function AttendEv() {
                       </div>
                       <div className="ev-inf flex justify-between flex-col py-5 px-3">
                         <div>
-                          {d.atendeeCount !== 0 && (
+                          {/* {d.atendeeCount !== 0 && (
                             <div className="tag flex items-center gap-2 bg-emerald-100 text-emerald-600 border-1 border-emerald-600 w-max px-4 py-1 text-xs rounded-full font-[500]">
                               <Users size="15px" /> {d.atendeeCount}{" "}
                               {d.atendeeCount > 1 ? "people" : "person"} already
@@ -420,8 +420,8 @@ export default function AttendEv() {
                             <div className="tag flex items-center gap-2 bg-red-100 text-red-600 border-1 border-red-600 w-max px-4 py-1 text-xs rounded-full font-[500]">
                               No one has registered yet.
                             </div>
-                          )}
-                          <h1 className="font-[600] text-xl md:text-2xl mt-3">
+                          )} */}
+                          <h1 className="font-[600] text-xl md:text-2xl mt-1">
                             {d.name}
                           </h1>
                           <p className="text-neutral-900 text-sm md:text-base">
@@ -452,11 +452,11 @@ export default function AttendEv() {
                               (GMT{(d.offsetT * -1) / 60 > 0 ? "+" : ""}
                               {(d.offsetT * -1) / 60})
                             </div>
-                            <div className="tag flex items-center gap-2">
+                            {/* <div className="tag flex items-center gap-2">
                               <Users size="15px" /> Capacity: {d.atendeeLim}{" "}
                               person
                               {d.atendeeLim > 1 ? "s" : ""}
-                            </div>
+                            </div> */}
                           </div>
                         </div>
                         <div className="mt-10 md:mt-0">
@@ -518,11 +518,11 @@ export default function AttendEv() {
                       className="w-full h-full object-cover brightness-60 z-[1]"
                     />
                     <div className="bg-gradient-to-t from-slate-600/90 to-transparent z-[2] h-[100%] w-full absolute top-0"></div>
-                    <div className="absolute bottom-[30px] left-[30px] text-white z-[3]">
-                      <h1 className="text-xl font-[600]">
+                    <div className="absolute bottom-[20px] left-[20px] text-white z-[3]">
+                      <h1 className="text:lg md:text-xl font-[600]">
                         {currentEventReg.name}
                       </h1>
-                      <p className=" text-sm">
+                      <p className="text-xs md:text-sm">
                         {currentEventReg.organizedBy} •{" "}
                         {currentEventReg.location}
                       </p>
@@ -567,11 +567,11 @@ export default function AttendEv() {
                         (GMT{(currentEventReg.offsetT * -1) / 60 > 0 ? "+" : ""}
                         {(currentEventReg.offsetT * -1) / 60})
                       </div>
-                      <div className="tag flex items-center gap-2">
+                      {/* <div className="tag flex items-center gap-2">
                         <Users size="15px" /> Capacity:{" "}
                         {currentEventReg.atendeeLim} person
                         {currentEventReg.atendeeLim > 1 ? "s" : ""}
-                      </div>
+                      </div> */}
                     </div>
                     <div className="mt-5 flex flex-col gap-2">
                       <TextInput

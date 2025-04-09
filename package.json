@@ -17,6 +17,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "axios": "^1.8.4",
     "framer-motion": "^12.4.11",
+    "intl-tel-input": "^25.3.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.479.0",
     "moment": "^2.30.1",

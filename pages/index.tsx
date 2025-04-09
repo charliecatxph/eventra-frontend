@@ -5,7 +5,7 @@ import { useEffect } from "react";
 export default function Home() {
   const router = useRouter();
   useEffect(() => {
-    router.push(`/attend/${process.env.NEXT_PUBLIC_REDIRECT}`);
+    router.push(`/attend`);
   }, []);
   return (
     <>

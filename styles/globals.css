@@ -114,3 +114,7 @@ button {
   display: inline-block;      
   margin-right: 0.5rem;       
 }
+
+.evs-hero {
+  height: clamp(900px, 100vh, 1100px)
+}

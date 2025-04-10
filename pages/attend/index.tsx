@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   ArrowRight,
   ArrowUpRight,
+  Briefcase,
   Calendar,
   Check,
   Clock,
@@ -269,7 +270,7 @@ export default function AttendEv() {
     }
 
     Object.keys(registrationForm).forEach((key) => {
-      if (key === "email") return;
+      if (key === "email" || key === "addr") return;
 
       if (!registrationForm[key as keyof RegForm].value) {
         setRegistrationForm((pv) => ({
@@ -417,11 +418,8 @@ export default function AttendEv() {
                   <img src="/assets/mpoc.png" alt="" />
                 </div>
                 <div className="hidden lg:block">
-                  <p className="font-[700] text-emerald-600 text-lg">
+                  <p className="font-[700] text-emerald-600 text-xl">
                     Malaysian Palm Oil Council
-                  </p>
-                  <p className="font-[500] text-xs text-neutral-800">
-                    VINCEOLEO Philippines
                   </p>
                 </div>
               </div>
@@ -440,9 +438,9 @@ export default function AttendEv() {
             </div>
           </div>
         </header>
-        <section className="h-screen max-h-[1100px] overflow-hidden">
-          <div className="eventra-reg-container geist h-full">
-            <div className="wrapper h-full relative">
+        <section className="overflow-hidden">
+          <div className="eventra-reg-container geist">
+            <div className="wrapper relative evs-hero ">
               <div className="floating flex flex-col gap-[20px] relative pt-[30px] z-[2] md:flex-row md:pt-[100px] lg:pt-[150px]">
                 <div className="h-full flex items-start self-stretch shrink-0">
                   <img
@@ -473,15 +471,6 @@ export default function AttendEv() {
                     </p>
                   </div>
 
-                  <a
-                    href="https://drive.google.com/file/d/1N1oH8ixjKXuWaSGe3Civ_LpC_YOrh7MA/view"
-                    target="_blank"
-                  >
-                    <button className="text-xs  lg:text-sm bg-neutral-50 border-1 border-neutral-500 hover:bg-neutral-100 text-neutral-900 rounded-full px-5 py-1.5 mt-10  font-[600] flex gap-2 items-center">
-                      <Download size="15px" strokeWidth={3} />
-                      Download Program Brochure
-                    </button>
-                  </a>
                   <button
                     onClick={() =>
                       setCurrentEventReg((pv) => ({
@@ -489,17 +478,32 @@ export default function AttendEv() {
                         active: true,
                       }))
                     }
-                    className="text-xs lg:text-sm bg-[#F26522] hover:bg-orange-500 rounded-full px-5 py-1.5 mt-2 text-white font-[600] flex gap-2 items-center"
+                    className="text-base lg:text-lg bg-[#F26522] hover:bg-orange-500 rounded-full px-5 py-1.5 mt-5 text-white font-[600] flex gap-2 items-center"
                   >
-                    <ArrowUpRight size="15px" strokeWidth={3} />
-                    Register
+                    <ArrowUpRight size="18px" strokeWidth={3} />
+                    Register to MPOF2025
                   </button>
+                  <a
+                    href="https://drive.google.com/file/d/1N1oH8ixjKXuWaSGe3Civ_LpC_YOrh7MA/view"
+                    target="_blank"
+                  >
+                    <button className="text-xs  lg:text-sm bg-neutral-50 border-1 border-neutral-500 hover:bg-neutral-100 text-neutral-900 rounded-full px-5 py-1.5 mt-3  font-[600] flex gap-2 items-center">
+                      <Download size="15px" strokeWidth={3} />
+                      Download Program Brochure
+                    </button>
+                  </a>
+                  <div className="mt-5">
+                    <p className="flex items-center gap-2 text-xs text-neutral-600 select-none">
+                      <Briefcase size="15px" />
+                      Official Event Organizer: VINCEOLEO Philippines
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="relative mt-[50px] w-[200px] z-[5] lg:mt-[100px] lg:w-[250px] xl:mt-[130px] xl:w-[300px]">
                 <img src="/assets/support.png" alt="" />
               </div>
-              <div className="absolute bottom-[200px] z-[1] right-[-200px] opacity-50  max-w-[1100px] md:bottom-0 md:opacity-100 md:right-[-500px] lg:right-[-200px] lg:bottom-[50px]">
+              <div className="absolute bottom-[400px] z-[1] right-[-200px] opacity-50  max-w-[1100px] md:bottom-0 md:opacity-100 md:right-[-500px] lg:right-[-200px] lg:bottom-[50px]">
                 <img src="/assets/hero-img.png" alt="" className="w-full" />
               </div>
             </div>
@@ -1241,7 +1245,6 @@ export default function AttendEv() {
                           }))
                         }
                         error={registrationForm.addr.err}
-                        req
                       />
                       <div className="flex flex-col md:flex-row items-start gap-2">
                         <TextInput

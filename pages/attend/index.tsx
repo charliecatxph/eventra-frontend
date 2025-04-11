@@ -8,6 +8,7 @@ import {
   Clock,
   Download,
   Users,
+  InfoIcon,
   X,
 } from "lucide-react";
 import { useRouter } from "next/router";
@@ -406,19 +407,26 @@ export default function AttendEv() {
   return (
     <>
       <Head>
-        <title>Eventra | Attend an Event</title>
-        <link rel="icon" href="/favicon.ico" />
+        <title>
+          MPOF2025 | Malaysian Palm Oil Forum Philippines 2025 (Dusit Thani,
+          Manila)
+        </title>
+        <link rel="icon" href="/assets/petalsfav/favicon.ico" />
       </Head>
       <main className="min-h-screen w-full bg-[#FEF2E3] pb-[50px]">
         <header className="bg-[#FEF2E3] py-8 inter select-none sticky top-0 w-full z-[999]">
           <div className="eventra-reg-container">
             <div className="flex justify-between items-center">
               <div className="flex gap-[40px] items-center">
-                <div className="icon shrink-0">
-                  <img src="/assets/mpoc.png" alt="" />
+                <div className="icon shrink-0 w-[65px] h-[55px]">
+                  <img
+                    src="/assets/mpoclogo.png"
+                    alt=""
+                    className="w-full h-full"
+                  />
                 </div>
                 <div className="hidden lg:block">
-                  <p className="font-[700] text-emerald-600 text-xl">
+                  <p className="font-[700] text-emerald-600 text-[27px]">
                     Malaysian Palm Oil Council
                   </p>
                 </div>
@@ -456,17 +464,17 @@ export default function AttendEv() {
                   <h2 className="text-[20px] font-[600] text-[#2F3293] md:text-[24px] lg:text-2xl xl:text-3xl">
                     Philippines 2025
                   </h2>
-                  <p className="text-[15px]">June 3-4, Dusit Thani, Manila</p>
+                  <p className="text-[16px]">June 3-4, Dusit Thani, Manila</p>
 
-                  <div className="text-xs font-[500] mt-5 text-neutral-700 md:text-sm lg:text-base">
+                  <div className="text-xs font-[500] mt-5 text-neutral-700 md:text-sm lg:text-xl">
                     <p>Lauric Oils:</p>
-                    <p className="text-base md:text-lg text-black">
+                    <p className="text-base md:text-2xl text-black">
                       Advancements,
                     </p>
-                    <p className="text-base md:text-lg text-black">
+                    <p className="text-base md:text-2xl text-black">
                       Market Dynamics,
                     </p>
-                    <p className="text-base md:text-lg text-black">
+                    <p className="text-base md:text-2xl text-black">
                       and Applications
                     </p>
                   </div>
@@ -484,7 +492,7 @@ export default function AttendEv() {
                     Register to MPOF2025
                   </button>
                   <a
-                    href="https://drive.google.com/file/d/1N1oH8ixjKXuWaSGe3Civ_LpC_YOrh7MA/view"
+                    href="https://drive.google.com/file/d/1PVxY56IvWsaVnY0AJI7WD0UC-itmKrwp/view?usp=sharing"
                     target="_blank"
                   >
                     <button className="text-xs  lg:text-sm bg-neutral-50 border-1 border-neutral-500 hover:bg-neutral-100 text-neutral-900 rounded-full px-5 py-1.5 mt-3  font-[600] flex gap-2 items-center">
@@ -492,16 +500,20 @@ export default function AttendEv() {
                       Download Program Brochure
                     </button>
                   </a>
-                  <div className="mt-5">
-                    <p className="flex items-center gap-2 text-xs text-neutral-600 select-none">
-                      <Briefcase size="15px" />
-                      Official Event Organizer: VINCEOLEO Philippines
-                    </p>
-                  </div>
                 </div>
               </div>
               <div className="relative mt-[50px] w-[200px] z-[5] lg:mt-[100px] lg:w-[250px] xl:mt-[130px] xl:w-[300px]">
                 <img src="/assets/support.png" alt="" />
+              </div>{" "}
+              <div className="relative mt-5 w-[200px] z-[5] lg:w-[250px] xl:w-[300px]">
+                <h1 className="font-[500] text-sm inter">Organized by</h1>
+                <a href="https://vinceoleo.com">
+                  <img
+                    src="/assets/vinceoleo.svg"
+                    alt=""
+                    className="h-[50px]"
+                  />
+                </a>
               </div>
               <div className="absolute bottom-[400px] z-[1] right-[-200px] opacity-50  max-w-[1100px] md:bottom-0 md:opacity-100 md:right-[-500px] lg:right-[-200px] lg:bottom-[50px]">
                 <img src="/assets/hero-img.png" alt="" className="w-full" />
@@ -860,27 +872,27 @@ export default function AttendEv() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-3 rounded flex justify-between items-center">
                 <span className="font-bold text-lg">Titanium</span>
-                <span className="font-bold">RM30,000</span>
+                <span className="font-bold">USD6,700</span>
               </div>
 
               <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-3 rounded flex justify-between items-center">
                 <span className="font-bold text-lg">Gold</span>
-                <span className="font-bold">RM15,000</span>
+                <span className="font-bold">USD3,500</span>
               </div>
 
               <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white p-3 rounded flex justify-between items-center">
                 <span className="font-bold text-lg">Platinum</span>
-                <span className="font-bold">RM20,000</span>
+                <span className="font-bold">USD4,500</span>
               </div>
 
               <div className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 p-3 rounded flex justify-between items-center">
                 <span className="font-bold text-lg">Silver</span>
-                <span className="font-bold">RM10,000</span>
+                <span className="font-bold">USD2,500</span>
               </div>
 
               <div className="md:col-span-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white p-3 rounded flex justify-between items-center">
                 <span className="font-bold text-lg">Partner</span>
-                <span className="font-bold">RM5,000</span>
+                <span className="font-bold">USD1,200</span>
               </div>
             </div>
 
@@ -893,7 +905,7 @@ export default function AttendEv() {
               {/* Titanium Benefits */}
               <div className="border border-gray-300 rounded overflow-hidden bg-white">
                 <div className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-3">
-                  <h3 className="font-bold">Titanium Sponsor - RM30,000</h3>
+                  <h3 className="font-bold">Titanium Sponsor - USD6,700</h3>
                 </div>
                 <div className="p-4">
                   <ul className="list-disc pl-5 space-y-2 text-sm">
@@ -932,7 +944,7 @@ export default function AttendEv() {
               {/* Gold Benefits */}
               <div className="border border-gray-300 rounded overflow-hidden bg-white">
                 <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-3">
-                  <h3 className="font-bold">Gold Sponsor - RM15,000</h3>
+                  <h3 className="font-bold">Gold Sponsor - USD3,500</h3>
                 </div>
                 <div className="p-4">
                   <ul className="list-disc pl-5 space-y-2 text-sm">
@@ -958,7 +970,7 @@ export default function AttendEv() {
               {/* Platinum Benefits */}
               <div className="border border-gray-300 rounded overflow-hidden bg-white">
                 <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white p-3">
-                  <h3 className="font-bold">Platinum Sponsor - RM20,000</h3>
+                  <h3 className="font-bold">Platinum Sponsor - USD4,500</h3>
                 </div>
                 <div className="p-4">
                   <ul className="list-disc pl-5 space-y-2 text-sm">
@@ -997,7 +1009,7 @@ export default function AttendEv() {
               {/* Silver Benefits */}
               <div className="border border-gray-300 rounded overflow-hidden bg-white">
                 <div className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 p-3">
-                  <h3 className="font-bold">Silver Sponsor - RM10,000</h3>
+                  <h3 className="font-bold">Silver Sponsor - USD2,500</h3>
                 </div>
                 <div className="p-4">
                   <ul className="list-disc pl-5 space-y-2 text-sm">
@@ -1019,7 +1031,7 @@ export default function AttendEv() {
               {/* Partner Benefits */}
               <div className="border border-gray-300 rounded overflow-hidden md:col-span-2 bg-white">
                 <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-3">
-                  <h3 className="font-bold">Partner - RM5,000</h3>
+                  <h3 className="font-bold">Partner - USD1,200</h3>
                 </div>
                 <div className="p-4">
                   <ul className="list-disc pl-5 space-y-2 text-sm">
@@ -1047,7 +1059,9 @@ export default function AttendEv() {
                     <h3 className="font-bold text-gray-800 text-lg">
                       Rina Marjati Gustam
                     </h3>
-                    <p className="text-gray-700">rina@mpoc.org.my</p>
+                    <p className="text-gray-700">
+                      <a href="mailto:rina@mpoc.org.my">rina@mpoc.org.my</a>
+                    </p>
                     <div className="w-32 h-0.5 bg-orange-400 mt-2"></div>
                   </div>
 
@@ -1055,7 +1069,11 @@ export default function AttendEv() {
                     <h3 className="font-bold text-gray-800 text-lg">
                       William Lau
                     </h3>
-                    <p className="text-gray-700">williamlhh@mpoc.org.my</p>
+                    <p className="text-gray-700">
+                      <a href="mailto:williamlhh@mpoc.org.my">
+                        williamlhh@mpoc.org.my
+                      </a>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1163,7 +1181,7 @@ export default function AttendEv() {
                         {moment
                           .unix(currentEventReg.date)
                           .utcOffset(currentEventReg.offsetT * -1)
-                          .format("MMM DD, YYYY")}
+                          .format("dddd, MMM DD, YYYY")}
                       </div>
                       <div className="tag flex items-center gap-2">
                         <Clock size="15px" />{" "}
@@ -1311,7 +1329,43 @@ export default function AttendEv() {
                         onLoad={onLoad}
                         onVerify={setHCaptchaToken}
                         ref={captchaRef}
+                        key={123}
                       />
+
+                      <div className="quest bg-emerald-50 rounded-xl mt-2 px-8 py-5 text-emerald-700">
+                        <h1 className="font-[500] text-sm">
+                          If you have any questions, please do not hesistate to
+                          contact:
+                        </h1>
+
+                        <div className="mt-2">
+                          <ul>
+                            <li className="font-[600]">
+                              Marciano Ferrancullo Jr.
+                            </li>
+                            <li className="text-sm">
+                              <a href="mailto:marc_chevoleo@hotmail.com">
+                                marc_chevoleo@hotmail.com
+                              </a>
+                            </li>
+                            <li className="text-sm">+63 966 387 4917</li>
+                          </ul>
+                        </div>
+                        <div className="mt-2">
+                          <ul>
+                            <li className="font-[600]">Marc Ferrancullo</li>
+                            <li className="text-sm">
+                              <a href="mailto:marcferrancullo@gmail.com">
+                                marcferrancullo@gmail.com
+                              </a>
+                            </li>
+                            <li className="text-sm">+63 915 644 2425</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <p className="text-center text-xs mt-2 text-neutral-700 select-none">
+                        For your safety, this site is protected by hCaptcha.
+                      </p>
                       <div className="submit-btns flex justify-end mt-3">
                         {!isRegistering && (
                           <button
@@ -1325,7 +1379,7 @@ export default function AttendEv() {
                         {isRegistering && (
                           <button
                             onClick={() => {}}
-                            className="flex gap-2 items-center bg-black text-white py-1.5 px-4 text-sm rounded-md hover:bg-neutral-900"
+                            className="cursor-not-allowed flex gap-2 items-center bg-black text-white py-1.5 px-4 text-sm rounded-md hover:bg-neutral-900"
                           >
                             <CircularProgress
                               disableShrink

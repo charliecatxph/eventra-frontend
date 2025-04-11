@@ -1339,20 +1339,6 @@ export default function AttendEv() {
                           If you have any questions, please do not hesistate to
                           contact:
                         </h1>
-
-                        <div className="mt-2">
-                          <ul>
-                            <li className="font-[600] text-sm">
-                              Marciano Ferrancullo Jr.
-                            </li>
-                            <li className="text-xs">
-                              <a href="mailto:marc_chevoleo@hotmail.com">
-                                marc_chevoleo@hotmail.com
-                              </a>
-                            </li>
-                            <li className="text-xs">+63 966 387 4917</li>
-                          </ul>
-                        </div>
                         <div className="mt-2">
                           <ul>
                             <li className="font-[600] text-sm">
@@ -1364,6 +1350,19 @@ export default function AttendEv() {
                               </a>
                             </li>
                             <li className="text-xs">+63 915 644 2425</li>
+                          </ul>
+                        </div>
+                        <div className="mt-2">
+                          <ul>
+                            <li className="font-[600] text-sm">
+                              Marciano Ferrancullo Jr.
+                            </li>
+                            <li className="text-xs">
+                              <a href="mailto:marc_chevoleo@hotmail.com">
+                                marc_chevoleo@hotmail.com
+                              </a>
+                            </li>
+                            <li className="text-xs">+63 966 387 4917</li>
                           </ul>
                         </div>
                       </div>

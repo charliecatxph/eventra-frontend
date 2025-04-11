@@ -506,12 +506,14 @@ export default function AttendEv() {
                 <img src="/assets/support.png" alt="" />
               </div>{" "}
               <div className="relative mt-5 w-[200px] z-[5] lg:w-[250px] xl:w-[300px]">
-                <h1 className="font-[500] text-sm inter">Organized by</h1>
+                <h1 className="font-[500] text-xs lg:text-[13px] xl:text-sm inter">
+                  Organized by
+                </h1>
                 <a href="https://vinceoleo.com">
                   <img
                     src="/assets/vinceoleo.svg"
                     alt=""
-                    className="h-[50px]"
+                    className="h-[40px] lg:h-[42px] xl:h-[50px]"
                   />
                 </a>
               </div>
@@ -1333,33 +1335,35 @@ export default function AttendEv() {
                       />
 
                       <div className="quest bg-emerald-50 rounded-xl mt-2 px-8 py-5 text-emerald-700">
-                        <h1 className="font-[500] text-sm">
+                        <h1 className="font-[500] text-xs">
                           If you have any questions, please do not hesistate to
                           contact:
                         </h1>
 
                         <div className="mt-2">
                           <ul>
-                            <li className="font-[600]">
+                            <li className="font-[600] text-sm">
                               Marciano Ferrancullo Jr.
                             </li>
-                            <li className="text-sm">
+                            <li className="text-xs">
                               <a href="mailto:marc_chevoleo@hotmail.com">
                                 marc_chevoleo@hotmail.com
                               </a>
                             </li>
-                            <li className="text-sm">+63 966 387 4917</li>
+                            <li className="text-xs">+63 966 387 4917</li>
                           </ul>
                         </div>
                         <div className="mt-2">
                           <ul>
-                            <li className="font-[600]">Marc Ferrancullo</li>
-                            <li className="text-sm">
+                            <li className="font-[600] text-sm">
+                              Marc Ferrancullo
+                            </li>
+                            <li className="text-xs">
                               <a href="mailto:marcferrancullo@gmail.com">
                                 marcferrancullo@gmail.com
                               </a>
                             </li>
-                            <li className="text-sm">+63 915 644 2425</li>
+                            <li className="text-xs">+63 915 644 2425</li>
                           </ul>
                         </div>
                       </div>

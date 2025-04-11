@@ -1336,7 +1336,7 @@ export default function AttendEv() {
 
                       <div className="quest bg-emerald-50 rounded-xl mt-2 px-8 py-5 text-emerald-700">
                         <h1 className="font-[500] text-xs">
-                          If you have any questions, please do not hesistate to
+                          If you have any questions, please do not hesitate to
                           contact:
                         </h1>
                         <div className="mt-2">

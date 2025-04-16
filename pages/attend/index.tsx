@@ -507,7 +507,7 @@ export default function AttendEv() {
               </div>{" "}
               <div className="relative mt-5 w-[200px] z-[5] lg:w-[250px] xl:w-[300px]">
                 <h1 className="font-[500] text-xs lg:text-[13px] xl:text-sm inter">
-                  Organized by
+                  Official Event Organizer
                 </h1>
                 <a href="https://vinceoleo.com">
                   <img

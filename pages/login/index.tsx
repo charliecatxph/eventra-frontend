@@ -17,7 +17,7 @@ interface LoginForm {
 }
 
 export default function Login() {
-  const [render, setRender] = useState<boolean>(false);
+  const [render, setRender] = useState<boolean>(true);
   const router = useRouter();
   const appData = useSelector(selectApp);
 
@@ -28,15 +28,15 @@ export default function Login() {
     failMsg: "",
   });
 
-  useSecureRoute(
-    () => {
-      if (regStat.active) return;
-      router.push("/dashboard");
-    },
-    () => {
-      setRender(true);
-    }
-  );
+  // useSecureRoute(
+  //   () => {
+  //     if (regStat.active) return;
+  //     router.push("/dashboard");
+  //   },
+  //   () => {
+  //     setRender(true);
+  //   }
+  // );
 
   const dispatch = useDispatch<AppDispatch>();
 

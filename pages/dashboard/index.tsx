@@ -152,7 +152,7 @@ export const pieData = {
 export default function Dashboard() {
   const modal = useModal();
   const [fetching, setFetching] = useState<boolean>(true);
-  const [render, setRender] = useState<boolean>(false));
+  const [render, setRender] = useState<boolean>(false);
   useSecureRoute(() => setRender(true));
   const appData = useSelector(selectApp);
   const dispatch = useDispatch<AppDispatch>();
@@ -161,7 +161,6 @@ export default function Dashboard() {
   const [highlightBizEv, setHighlightBizEv] = useState<BizEv>();
   const [aEvs, setAEvs] = useState<any[]>([]);
   const [aEvsSpec, setAEvsSpec] = useState<any[]>([]);
-
 
   const [filterEvs, setFilterEvs] = useState<any>({
     status: "",
@@ -173,7 +172,6 @@ export default function Dashboard() {
   const rfx2 = useClickOutside<HTMLDivElement>(() => {
     setOpenFilter(false);
   });
-
 
   const [rpdOrd, setRpdOrd] = useState<any>({
     labels: [],
@@ -225,25 +223,32 @@ export default function Dashboard() {
   const fetchEvents = async () => {
     try {
       // fetch ord-ev and biz-ev
-      const getEventsReq = await getEvents(process.env.NEXT_PUBLIC_API || "", appData.acsTok).catch(e => {
-        throw new Error(e?.err)
-      })
+      const getEventsReq = await getEvents(
+        process.env.NEXT_PUBLIC_API || "",
+        appData.acsTok
+      ).catch((e) => {
+        throw new Error(e?.err);
+      });
 
-  
       const shwlx = [...getEventsReq.data.ord, ...getEventsReq.data.bz];
       shwlx.sort((a, b) => b.endT - a.endT);
       setAEvs(shwlx);
       setAEvsSpec(shwlx);
 
-
       const h_ord = getHighlightEvent([...getEventsReq.data.ord]);
       const b_ord = getHighlightEvent([...getEventsReq.data.bz]);
 
-      const getOrdEventAnalyticsReq = await getOrdEventAnalytics(process.env.NEXT_PUBLIC_API || "", appData.acsTok, h_ord.id, h_ord.offset, "rpd").catch(e => {
-        throw new Error(e?.err)
-      })
-      
-      setRpdOrd(getOrdEventAnalyticsReq.data)
+      const getOrdEventAnalyticsReq = await getOrdEventAnalytics(
+        process.env.NEXT_PUBLIC_API || "",
+        appData.acsTok,
+        h_ord.id,
+        h_ord.offset,
+        "rpd"
+      ).catch((e) => {
+        throw new Error(e?.err);
+      });
+
+      setRpdOrd(getOrdEventAnalyticsReq.data);
 
       setHighlightOrdEv(h_ord);
       setHighlightBizEv(b_ord);
@@ -339,8 +344,8 @@ export default function Dashboard() {
                 <Plus size="18px" /> New Event
               </button>
 
-              <Notifications gate={fetching}/>
-              <Avatar/>
+              <Notifications gate={fetching} />
+              <Avatar />
             </div>
           </div>
         </nav>
@@ -428,7 +433,11 @@ export default function Dashboard() {
                             <div className="circle w-[10px] h-[10px] bg-blue-500 rounded-full"></div>
                             <p>{highlightOrdEv.atnSz} persons registered</p>
                           </div>
-                          <ChevronRight onClick={() => router.push(`/view-event/${highlightOrdEv.id}`)}/>
+                          <ChevronRight
+                            onClick={() =>
+                              router.push(`/view-event/${highlightOrdEv.id}`)
+                            }
+                          />
                         </div>
                       </div>
                       <div className="absolute top-0 right-0 w-full h-full z-[1]">
@@ -948,9 +957,12 @@ export default function Dashboard() {
                           aEvs.map((d, i) => {
                             return (
                               <>
-                                <div  onClick={() =>
-                                        router.push(`/view-event/${d.id}`)
-                                      } className="hover:bg-neutral-50 event flex justify-between items-center px-4 py-3 border-1 border-neutral-100 rounded-md">
+                                <div
+                                  onClick={() =>
+                                    router.push(`/view-event/${d.id}`)
+                                  }
+                                  className="hover:bg-neutral-50 event flex justify-between items-center px-4 py-3 border-1 border-neutral-100 rounded-md"
+                                >
                                   <div>
                                     <h1 className="text-sm font-[500]">
                                       {d.name}
@@ -1003,7 +1015,6 @@ export default function Dashboard() {
                                         </div>
                                       )}
                                     </div>
-                                 
                                   </div>
                                 </div>
                               </>

@@ -30,7 +30,6 @@ const appSlice = createSlice({
   initialState,
   reducers: {
     appUpdate: (state, action: PayloadAction<Partial<AppState>>) => {
-      console.log("call", action.payload);
       return { ...state, ...action.payload }; // Merge updated fields
     },
     resetApp: () => {

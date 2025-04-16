@@ -7,7 +7,10 @@ import { useEffect } from "react";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 
-export function useSecureRoute(callback: () => void) {
+export function useSecureRoute(
+  callback: () => void,
+  callbackFail?: () => void
+) {
   const router = useRouter();
   const appData = useSelector(selectApp);
   const dispatch = useDispatch<AppDispatch>();
@@ -38,6 +41,7 @@ export function useSecureRoute(callback: () => void) {
       callback();
     } catch (e) {
       router.push("/login");
+      callbackFail && callbackFail();
     }
   };
 

@@ -65,14 +65,16 @@ export const Modal = ({
             </div>
             <div className="flex justify-end items-center bg-neutral-50 px-4 py-2">
               <div className="flex gap-2 text-sm">
-                <button
-                  onClick={() => {
-                    onCancel && onCancel();
-                  }}
-                  className="hover:bg-neutral-50 bg-white border-1 font-[500] border-neutral-400 px-4 py-1.5 rounded-md"
-                >
-                  {cancelText}
-                </button>
+                {cancelText && (
+                  <button
+                    onClick={() => {
+                      onCancel && onCancel();
+                    }}
+                    className="hover:bg-neutral-50 bg-white border-1 font-[500] border-neutral-400 px-4 py-1.5 rounded-md"
+                  >
+                    {cancelText}
+                  </button>
+                )}
                 <button
                   onClick={() => (onConfirm ? onConfirm() : "")}
                   className="hover:bg-red-500 bg-red-600 text-white font-[500] px-4 py-1.5 rounded-md"
@@ -122,14 +124,16 @@ export const Modal = ({
             </div>
             <div className="flex justify-end items-center bg-neutral-50 px-4 py-2">
               <div className="flex gap-2 text-sm">
-                <button
-                  onClick={() => {
-                    onCancel && onCancel();
-                  }}
-                  className="hover:bg-neutral-50 bg-white border-1 font-[500] border-neutral-400 px-4 py-1.5 rounded-md"
-                >
-                  {cancelText}
-                </button>
+                {cancelText && (
+                  <button
+                    onClick={() => {
+                      onCancel && onCancel();
+                    }}
+                    className="hover:bg-neutral-50 bg-white border-1 font-[500] border-neutral-400 px-4 py-1.5 rounded-md"
+                  >
+                    {cancelText}
+                  </button>
+                )}
                 <button
                   onClick={() => (onConfirm ? onConfirm() : "")}
                   className="hover:bg-emerald-500 bg-emerald-600 text-white font-[500] px-4 py-1.5 rounded-md"

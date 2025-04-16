@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   ArrowDownRight,
   ArrowLeftRight,
   ArrowRight,
@@ -7,11 +8,13 @@ import {
   Box,
   Boxes,
   Calendar,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
   DoorOpen,
+  FileQuestion,
   HomeIcon,
   Info,
   LayoutDashboard,
@@ -27,6 +30,7 @@ import {
   TriangleAlert,
   User,
   Users,
+  Wrench,
   X,
 } from "lucide-react";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -43,7 +47,7 @@ import { useClickOutside } from "@/hooks/UseClickOutside";
 import moment from "moment";
 import { CircularProgress } from "@mui/material";
 import Home from "..";
-import { useModal } from "@/components/Modal/ModalContext";
+import { useModal } from "@/hooks/useModal";
 import Head from "next/head";
 
 import {
@@ -59,6 +63,12 @@ import {
   ArcElement,
 } from "chart.js";
 import { Line, Pie } from "react-chartjs-2";
+import { getEvents } from "@/functions/getEvents";
+import { getNotifications } from "@/functions/getNotifcations";
+import { getOrdEventAnalytics } from "@/functions/getOrdEventAnalytics";
+import { useLogout } from "@/hooks/useLogout";
+import Notifications from "@/components/Nav/Notifications";
+import Avatar from "@/components/Nav/Avatar";
 
 interface SubMenu {
   user: boolean;
@@ -126,38 +136,12 @@ export const options = {
   },
 };
 
-const labels = ["January", "February", "March", "April", "May", "June", "July"];
-
-export const data = {
-  labels,
-  datasets: [
-    {
-      label: "Registrations",
-      data: Array(7)
-        .fill(null)
-        .map((d, i) => {
-          return Math.floor(Math.random() * 10);
-        }),
-      borderColor: "oklch(55.8% 0.288 302.321)",
-
-      tension: 0.6,
-
-      pointRadius: 4, // Visible point
-      pointHoverRadius: 6, // Enlarges on hover
-      pointBackgroundColor: "#fff",
-      pointHoverBackgroundColor: "#4338CA",
-      pointBorderColor: "#000",
-      pointHoverBorderColor: "#fff",
-    },
-  ],
-};
-
 export const pieData = {
   labels: ["Not In Event", "In Event"],
   datasets: [
     {
       label: "Persons",
-      data: [12, 5],
+      data: [2],
       backgroundColor: ["rgba(255, 99, 132, 0.2)", "rgba(54, 162, 235, 0.2)"],
       borderColor: ["rgba(255, 99, 132, 1)", "rgba(54, 162, 235, 1)"],
       borderWidth: 1,
@@ -168,8 +152,8 @@ export const pieData = {
 export default function Dashboard() {
   const modal = useModal();
   const [fetching, setFetching] = useState<boolean>(true);
-  const [render, setRender] = useState<boolean>(true);
-  // const usecure = useSecureRoute(() => setRender(true));
+  const [render, setRender] = useState<boolean>(false));
+  useSecureRoute(() => setRender(true));
   const appData = useSelector(selectApp);
   const dispatch = useDispatch<AppDispatch>();
 
@@ -177,10 +161,7 @@ export default function Dashboard() {
   const [highlightBizEv, setHighlightBizEv] = useState<BizEv>();
   const [aEvs, setAEvs] = useState<any[]>([]);
   const [aEvsSpec, setAEvsSpec] = useState<any[]>([]);
-  const [openProf, setOpenProf] = useState<boolean>(false);
-  const rfx = useClickOutside<HTMLDivElement>(() => {
-    setOpenProf(false);
-  });
+
 
   const [filterEvs, setFilterEvs] = useState<any>({
     status: "",
@@ -193,198 +174,104 @@ export default function Dashboard() {
     setOpenFilter(false);
   });
 
-  const [notifications, setNotifications] = useState<any[]>([]);
+
+  const [rpdOrd, setRpdOrd] = useState<any>({
+    labels: [],
+    datasets: [
+      {
+        label: "Registrations",
+        data: [],
+        borderColor: "oklch(55.8% 0.288 302.321)",
+
+        tension: 0.6,
+
+        pointRadius: 4, // Visible point
+        pointHoverRadius: 6, // Enlarges on hover
+        pointBackgroundColor: "#fff",
+        pointHoverBackgroundColor: "#4338CA",
+        pointBorderColor: "#000",
+        pointHoverBorderColor: "#fff",
+      },
+    ],
+  });
 
   const router = useRouter();
 
-  // const handleLogout = () => {
-  //   modal.show({
-  //     icon: <DoorOpen />,
-  //     title: "Log Out",
-  //     content:
-  //       "By logging out, you will be signed out of your account. If you're in the middle of any important tasks, please make sure you've saved everything before you proceed.",
-  //     confirmText: "Log Out",
-  //     cancelText: "Go Back",
-  //     onConfirm: async () => {
-  //       try {
-  //         const req = await axios.post(
-  //           `${process.env.NEXT_PUBLIC_API}/logout`,
-  //           {},
-  //           { withCredentials: true }
-  //         );
-  //         setRender(false);
-  //         dispatch(resetApp());
-  //         router.push("/login");
-  //         modal.hide();
-  //       } catch (e) {}
-  //     },
-  //     onCancel: () => {
-  //       modal.hide();
-  //     },
-  //     color: "red",
-  //   });
-  // };
+  const getHighlightEvent = (events: any[]): any => {
+    // check first if there is any ongoing or upcoming events, but prioritize checking ongoing events.
+    for (const event of events) {
+      if (event.status === "Ongoing") {
+        return event;
+      }
+    }
 
-  // const getHighlightEvent = (events: any[]): any => {
-  //   // check first if there is any ongoing or upcoming events, but prioritize checking ongoing events.
-  //   for (const event of events) {
-  //     if (event.status === "Ongoing") {
-  //       return event;
-  //     }
-  //   }
+    for (const event of events) {
+      if (event.status === "Upcoming") {
+        let curr = null;
+        curr = event;
+        for (const evx of events) {
+          if (evx.startT < curr.startT && evx.status === "Upcoming") {
+            curr = evx;
+          }
+        }
+        return curr;
+      }
+    }
 
-  //   for (const event of events) {
-  //     if (event.status === "Upcoming") {
-  //       let curr = null;
-  //       curr = event;
-  //       for (const evx of events) {
-  //         if (evx.startT < curr.startT && evx.status === "Upcoming") {
-  //           curr = evx;
-  //         }
-  //       }
-  //       return curr;
-  //     }
-  //   }
+    // if it loops entirely and there is absolutely no upcoming or ongoing events, get the past events, get latest one
+    return events.sort((a, b) => a.endT - b.endT)[0];
+  };
 
-  //   // if it loops entirely and there is absolutely no upcoming or ongoing events, get the past events, get latest one
-  //   return events.sort((a, b) => a.endT - b.endT)[0];
-  // };
+  const fetchEvents = async () => {
+    try {
+      // fetch ord-ev and biz-ev
+      const getEventsReq = await getEvents(process.env.NEXT_PUBLIC_API || "", appData.acsTok).catch(e => {
+        throw new Error(e?.err)
+      })
 
-  // const getFormattedTime = (seconds: number, offset: number) => {
-  //   return moment.unix(seconds).utcOffset(offset).format("h:mm a");
-  // };
+  
+      const shwlx = [...getEventsReq.data.ord, ...getEventsReq.data.bz];
+      shwlx.sort((a, b) => b.endT - a.endT);
+      setAEvs(shwlx);
+      setAEvsSpec(shwlx);
 
-  // const getFormattedDate = (milliseconds: number, offset: number) => {
-  //   return moment
-  //     .unix(Math.floor(milliseconds / 1000))
-  //     .utcOffset(offset)
-  //     .format("MMM DD, YYYY");
-  // };
 
-  // const fetchEvents = async () => {
-  //   try {
-  //     // fetch ord-ev and biz-ev
-  //     const req = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_API}/fetch-events?mode=full`,
-  //       {},
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${appData.acsTok}`,
-  //         },
-  //         withCredentials: true,
-  //       }
-  //     );
+      const h_ord = getHighlightEvent([...getEventsReq.data.ord]);
+      const b_ord = getHighlightEvent([...getEventsReq.data.bz]);
 
-  //     const req2 = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_API}/fetch-notifications`,
-  //       {},
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${appData.acsTok}`,
-  //         },
-  //         withCredentials: true,
-  //       }
-  //     );
-  //     const acs = req.data;
-  //     const acs2 = req2.data;
-  //     let tmp: OrdinaryEV[] = [];
-  //     let tmp2: any = [];
-  //     let tmp3: any = [];
+      const getOrdEventAnalyticsReq = await getOrdEventAnalytics(process.env.NEXT_PUBLIC_API || "", appData.acsTok, h_ord.id, h_ord.offset, "rpd").catch(e => {
+        throw new Error(e?.err)
+      })
+      
+      setRpdOrd(getOrdEventAnalyticsReq.data)
 
-  //     // append ev-data to tmps
-  //     acs.data.forEach((ordinaryEvent: any) => {
-  //       const status =
-  //         moment().unix() < ordinaryEvent.startT._seconds
-  //           ? "Upcoming"
-  //           : moment().unix() >= ordinaryEvent.startT._seconds &&
-  //             moment().unix() <= ordinaryEvent.endT._seconds
-  //           ? "Ongoing"
-  //           : "Past";
+      setHighlightOrdEv(h_ord);
+      setHighlightBizEv(b_ord);
 
-  //       tmp.push({
-  //         status: status,
-  //         allowWalkIn: ordinaryEvent.allowWalkIn,
-  //         atendeeLim: ordinaryEvent.atendeeLim,
-  //         date: ordinaryEvent.date._seconds * 1000,
-  //         startT: ordinaryEvent.startT._seconds,
-  //         endT: ordinaryEvent.endT._seconds,
-  //         location: ordinaryEvent.location,
-  //         organizationId: ordinaryEvent.organizationId,
-  //         name: ordinaryEvent.name,
-  //         sec_url: ordinaryEvent.coverFile,
-  //         offset: ordinaryEvent.offset * -1,
-  //         type: "Ordinary Event",
-  //         id: ordinaryEvent.id,
-  //         atnSz: ordinaryEvent.atnSz,
-  //       });
-  //     });
+      setTimeout(() => {
+        setFetching(false);
+      }, 1000);
+    } catch (e) {}
+  };
 
-  //     acs.bz.forEach((bizmatchEvent: any) => {
-  //       const status =
-  //         moment().unix() < bizmatchEvent.startT._seconds
-  //           ? "Upcoming"
-  //           : moment().unix() >= bizmatchEvent.startT._seconds &&
-  //             moment().unix() <= bizmatchEvent.endT._seconds
-  //           ? "Ongoing"
-  //           : "Past";
+  useEffect(() => {
+    if (appData.acsTok) {
+      fetchEvents();
+    }
+  }, [appData.acsTok]);
 
-  //       tmp2.push({
-  //         status: status,
-  //         name: bizmatchEvent.name,
-  //         date: bizmatchEvent.date._seconds * 1000,
-  //         startT: bizmatchEvent.startT._seconds,
-  //         endT: bizmatchEvent.endT._seconds,
-  //         organizationId: bizmatchEvent.organizationId,
-  //         lim: bizmatchEvent.lim,
-  //         offset: bizmatchEvent.offset * -1,
-  //         timeslotsCount: bizmatchEvent.timeslotsCount,
-  //         suppliersCount: bizmatchEvent.suppliersCount,
-  //         type: "BizMatch Event",
-  //         id: bizmatchEvent.id,
-  //       });
-  //     });
-
-  //     acs2.data.forEach((notification) => {
-  //       tmp3.push({
-  //         data: notification.data,
-  //         stamp: notification.stamp._seconds,
-  //         type: notification.type,
-  //       });
-  //     });
-
-  //     const shwlx = [...tmp, ...tmp2];
-  //     shwlx.sort((a, b) => b.endT - a.endT);
-  //     setAEvs(shwlx);
-  //     setAEvsSpec(shwlx);
-  //     setNotifications(tmp3);
-
-  //     setHighlightOrdEv(getHighlightEvent(tmp));
-  //     setHighlightBizEv(getHighlightEvent(tmp2));
-
-  //     setTimeout(() => {
-  //       setFetching(false);
-  //     }, 1000);
-  //   } catch (e) {}
-  // };
-
-  // useEffect(() => {
-  //   if (appData.acsTok) {
-  //     fetchEvents();
-  //   }
-  // }, [appData.acsTok]);
-
-  // useEffect(() => {
-  //   if (aEvsSpec.length === 0) return;
-  //   const shwlx = [...aEvsSpec];
-  //   setAEvs(
-  //     shwlx.filter(
-  //       (ev) =>
-  //         (!filterEvs.status || ev.status === filterEvs.status) &&
-  //         (!filterEvs.ordEventOnly || ev.type === "Ordinary Event") &&
-  //         (!filterEvs.bizEventOnly || ev.type === "BizMatch Event")
-  //     )
-  //   );
-  // }, [aEvsSpec, filterEvs]);
+  useEffect(() => {
+    if (aEvsSpec.length === 0) return;
+    const shwlx = [...aEvsSpec];
+    setAEvs(
+      shwlx.filter(
+        (ev) =>
+          (!filterEvs.status || ev.status === filterEvs.status) &&
+          (!filterEvs.ordEventOnly || ev.type === "Ordinary Event") &&
+          (!filterEvs.bizEventOnly || ev.type === "BizMatch Event")
+      )
+    );
+  }, [aEvsSpec, filterEvs]);
 
   if (!render) return <></>;
 
@@ -394,6 +281,7 @@ export default function Dashboard() {
         <title>Eventra | Dashboard</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
+
       <main className="min-h-screen w-full bg-[#fff] inter">
         <nav className="w-full h-[60px] bg-white border-b-2 border-neutral-100 flex">
           <div className="h-full w-[60px] grid place-content-center border-r-2 border-neutral-100">
@@ -444,20 +332,15 @@ export default function Dashboard() {
               </h1>
             </div>
             <div className="flex gap-2 h-full py-3 border-l-2 border-neutral-100 pl-5 px-3">
-              <button className="flex gap-2 items-center  h-full pl-3 pr-5 text-sm  border-1 border-neutral-200 hover:bg-black hover:text-white  font-[300]">
+              <button
+                onClick={() => router.push("/create-event")}
+                className="flex gap-2 items-center  h-full pl-3 pr-5 text-sm  border-1 border-neutral-200 hover:bg-black hover:text-white  font-[300]"
+              >
                 <Plus size="18px" /> New Event
               </button>
-              <button className="flex gap-2 items-center  h-full pl-3 pr-5 text-sm border-1 border-neutral-200 hover:bg-black hover:text-white font-[300]">
-                <QrCode size="15px" /> Scan QR
-              </button>
-              <button className="flex gap-2 items-center  h-full pl-3 pr-5 text-sm border-1 border-neutral-200 hover:bg-black hover:text-white font-[300]">
-                <Bell size="15px" /> Notifications
-              </button>
-              <div className="pl-5 avatar h-full">
-                <div className="xtc aspect-square h-full rounded-full bg-red-600">
-                  <img src="" alt="" />
-                </div>
-              </div>
+
+              <Notifications gate={fetching}/>
+              <Avatar/>
             </div>
           </div>
         </nav>
@@ -478,71 +361,659 @@ export default function Dashboard() {
               </li>
             </ul>
             <ul className="flex flex-col gap-2 pt-5 border-t-2 border-neutral-200 px-3 ">
-              <li className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center">
+              <li
+                onClick={() => {
+                  modal.info(
+                    "Unavailable",
+                    "This feature is still in development, please wait for the next version of Eventra.",
+                    () => {},
+                    () => {},
+                    "Okay",
+                    "",
+                    <AlertTriangle />,
+                    "initial"
+                  );
+                }}
+                className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
+              >
                 <Settings size="18px" />
                 Settings
               </li>
             </ul>
           </aside>
           <div
-            className="h-full bg-neutral-100 flex justify-center pt-5 px-5"
+            className="h-full bg-neutral-100 flex justify-center pt-5 px-5 overflow-y-scroll"
             style={{ width: "calc(100vw - 264px)" }}
           >
             <div className="h-full w-full">
               <div className="grid grid-cols-3 gap-2">
-                <div className="h-[250px] bg-white shadow-sm shadow-neutral-50 rounded-md"></div>
+                <div className="h-[250px] bg-white shadow-sm shadow-neutral-50 rounded-md geist overflow-hidden">
+                  {!fetching && highlightOrdEv && (
+                    <div className="h-full relative">
+                      <div className="flex justify-between flex-col  p-5 relative z-[2] text-white h-full">
+                        <div>
+                          {highlightOrdEv.status === "Upcoming" ? (
+                            <div className="text-white flex items-center gap-3 text-xs">
+                              <div className="circle h-[12px] w-[12px] rounded-full bg-yellow-600"></div>
+                              {highlightOrdEv.status}
+                            </div>
+                          ) : highlightOrdEv.status === "Ongoing" ? (
+                            <div className="text-white flex items-center gap-3 text-xs">
+                              <div className="circle h-[12px] w-[12px] rounded-full bg-emerald-600"></div>
+                              {highlightOrdEv.status}
+                            </div>
+                          ) : (
+                            <div className="text-white flex items-center gap-3 text-xs">
+                              <div className="circle h-[12px] w-[12px] rounded-full bg-red-600"></div>
+                              {highlightOrdEv.status}
+                            </div>
+                          )}
+                          <h1 className="text-2xl font-[500] mt-1">
+                            {highlightOrdEv?.name}
+                          </h1>
+                          <p className="text-neutral-100 text-sm">
+                            {moment
+                              .unix(highlightOrdEv.date)
+                              .utcOffset(highlightOrdEv.offset)
+                              .format("dddd, MMM DD, YYYY")}{" "}
+                            - {highlightOrdEv?.location}
+                          </p>
+                          <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
+                            <Users size="15px" /> Capacity:{" "}
+                            {highlightOrdEv.atendeeLim} atendees
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="registrations flex gap-2 items-center text-sm bg-white px-4 py-1 rounded-full text-black">
+                            <div className="circle w-[10px] h-[10px] bg-blue-500 rounded-full"></div>
+                            <p>{highlightOrdEv.atnSz} persons registered</p>
+                          </div>
+                          <ChevronRight onClick={() => router.push(`/view-event/${highlightOrdEv.id}`)}/>
+                        </div>
+                      </div>
+                      <div className="absolute top-0 right-0 w-full h-full z-[1]">
+                        <img
+                          src={highlightOrdEv?.sec_url}
+                          alt=""
+                          className="h-full w-full object-cover brightness-30"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {!fetching && !highlightOrdEv && (
+                    <div className="grid place-content-center h-full w-full">
+                      <div className="flex flex-col items-center gap-2 text-neutral-600">
+                        <FileQuestion size="18px" />
+                        <p className="text-sm">No Ordinary event.</p>
+                      </div>
+                    </div>
+                  )}
+                  {fetching && (
+                    <div className="grid place-content-center h-full w-full">
+                      <div className="flex items-center gap-2">
+                        <CircularProgress
+                          size={40}
+                          thickness={3}
+                          disableShrink
+                          sx={{
+                            color: "black", // spinner stroke
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
                   <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
                     <Users size="15px" strokeWidth={2} />
                     Registrations Per Day
                   </h1>
                   <div className="flex-1 relative">
-                    <Line options={options} data={data} />
+                    {!fetching && <Line options={options} data={rpdOrd} />}
+                    {fetching && (
+                      <div className="grid place-content-center h-full w-full">
+                        <div className="flex items-center gap-2">
+                          <CircularProgress
+                            size={40}
+                            thickness={3}
+                            disableShrink
+                            sx={{
+                              color: "black", // spinner stroke
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 ">
-                  <h1 className="font-[500] text-sm flex flex-col gap-2 justify-center text-neutral-900">
-                    <Users size="15px" strokeWidth={2} />
-                    In Event / Not In Event
-                  </h1>
-                  <div className="flex-1 relative">
-                    <Pie
-                      data={pieData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="h-[250px] bg-white shadow-sm shadow-neutral-50 rounded-md"></div>
                 <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
                   <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
                     <Users size="15px" strokeWidth={2} />
-                    Registrations Per Day
+                    In Event / Not In Event (Ordinary)
                   </h1>
                   <div className="flex-1 relative">
-                    <Line options={options} data={data} />
+                    {!fetching && (
+                      <Pie
+                        data={pieData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: { legend: { display: false } },
+                        }}
+                      />
+                    )}
+                    {fetching && (
+                      <div className="grid place-content-center h-full w-full">
+                        <div className="flex items-center gap-2">
+                          <CircularProgress
+                            size={40}
+                            thickness={3}
+                            disableShrink
+                            sx={{
+                              color: "black", // spinner stroke
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 ">
-                  <h1 className="font-[500] text-sm flex flex-col gap-2 justify-center text-neutral-900">
-                    <Users size="15px" strokeWidth={2} />
-                    In Event / Not In Event
-                  </h1>
-                  <div className="flex-1 relative">
-                    <Pie
-                      data={pieData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                      }}
-                    />
+                <div className="h-[250px] bg-white shadow-sm shadow-neutral-50 rounded-md">
+                  <div className="grid place-content-center h-full w-full">
+                    <div className="flex flex-col items-center gap-2 text-neutral-600">
+                      <FileQuestion size="18px" />
+                      <p className="text-sm">No BizMatch event.</p>
+                    </div>
                   </div>
                 </div>
-                <div className="col-span-3 bg-white h-[200px] shadow-sm shadow-neutral-50 rounded-md"></div>
+                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+                  <div className="grid place-content-center h-full w-full">
+                    <div className="flex flex-col items-center gap-2 text-neutral-600">
+                      <Wrench size="18px" />
+                      <p className="text-sm">In development.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+                  <div className="grid place-content-center h-full w-full">
+                    <div className="flex flex-col items-center gap-2 text-neutral-600">
+                      <Wrench size="18px" />
+                      <p className="text-sm">In development.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
+                  <div className="flex justify-between items-center">
+                    <h1 className="font-[500]">Events</h1>
+                    <div className="filters text-xs  flex gap-1 items-center select-none">
+                      <div
+                        onClick={() => {
+                          setFilterEvs((pv: any) => ({
+                            ...pv,
+                            ordEventOnly: !pv.ordEventOnly,
+                            bizEventOnly: false,
+                          }));
+                        }}
+                        className={`cursor-pointer py-1 px-2 border-1 border-neutral-100 rounded-full hover:bg-neutral-50 hover:text-emerald-600 ${
+                          filterEvs.ordEventOnly && "bg-emerald-600 text-white"
+                        }`}
+                      >
+                        Ordinary Events
+                      </div>
+                      <div
+                        onClick={() => {
+                          setFilterEvs((pv: any) => ({
+                            ...pv,
+                            ordEventOnly: false,
+                            bizEventOnly: !pv.bizEventOnly,
+                          }));
+                        }}
+                        className={`cursor-pointer py-1 px-2 border-1 border-neutral-100 rounded-full hover:bg-neutral-50 hover:text-emerald-600 ${
+                          filterEvs.bizEventOnly && "bg-emerald-600 text-white"
+                        }`}
+                      >
+                        BizMatch
+                      </div>
+                      <div className=" relative ">
+                        {!openFilter ? (
+                          <div
+                            onClick={() => setOpenFilter(true)}
+                            className="cursor-pointer flex gap-1 items-center hover:bg-neutral-50 hover:text-emerald-600 py-1 px-2 border-1 border-neutral-100 rounded-full "
+                          >
+                            {filterEvs.status === "" ? (
+                              <>
+                                {" "}
+                                <div className="icon">
+                                  <svg
+                                    width="33"
+                                    height="10"
+                                    viewBox="0 0 33 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#E7000B"
+                                    />
+                                    <ellipse
+                                      cx="16.5"
+                                      cy="10"
+                                      rx="10.5"
+                                      ry="10"
+                                      fill="#D08700"
+                                    />
+                                    <circle
+                                      cx="23"
+                                      cy="10"
+                                      r="10"
+                                      fill="#009966"
+                                    />
+                                  </svg>
+                                </div>
+                                All Statuses
+                              </>
+                            ) : filterEvs.status === "Ongoing" ? (
+                              <>
+                                <div className="icon">
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#009966"
+                                    />
+                                  </svg>
+                                </div>
+                                Ongoing
+                              </>
+                            ) : filterEvs.status === "Upcoming" ? (
+                              <>
+                                <div className="icon">
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#D08700"
+                                    />
+                                  </svg>
+                                </div>
+                                Upcoming
+                              </>
+                            ) : (
+                              <>
+                                <div className="icon">
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#E7000B"
+                                    />
+                                  </svg>
+                                </div>
+                                Past
+                              </>
+                            )}
+                            <ChevronDown size="12px" />
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => setOpenFilter(false)}
+                            className="cursor-pointer flex gap-1 items-center hover:bg-neutral-50 hover:text-emerald-600 py-1 px-2 border-1 border-neutral-100 rounded-full "
+                          >
+                            {filterEvs.status === "" ? (
+                              <>
+                                {" "}
+                                <div className="icon">
+                                  <svg
+                                    width="33"
+                                    height="10"
+                                    viewBox="0 0 33 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#E7000B"
+                                    />
+                                    <ellipse
+                                      cx="16.5"
+                                      cy="10"
+                                      rx="10.5"
+                                      ry="10"
+                                      fill="#D08700"
+                                    />
+                                    <circle
+                                      cx="23"
+                                      cy="10"
+                                      r="10"
+                                      fill="#009966"
+                                    />
+                                  </svg>
+                                </div>
+                                All Statuses
+                              </>
+                            ) : filterEvs.status === "Ongoing" ? (
+                              <>
+                                <div className="icon">
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#009966"
+                                    />
+                                  </svg>
+                                </div>
+                                Ongoing
+                              </>
+                            ) : filterEvs.status === "Upcoming" ? (
+                              <>
+                                <div className="icon">
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#D08700"
+                                    />
+                                  </svg>
+                                </div>
+                                Upcoming
+                              </>
+                            ) : (
+                              <>
+                                <div className="icon">
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#E7000B"
+                                    />
+                                  </svg>
+                                </div>
+                                Past
+                              </>
+                            )}
+                            <ChevronUp size="12px" />
+                          </div>
+                        )}
+                        <AnimatePresence>
+                          {openFilter && (
+                            <motion.div
+                              initial={{ y: 10, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              exit={{ y: 10, opacity: 0 }}
+                              key={1}
+                              ref={rfx2}
+                              className="absolute top-[120%] right-0 w-[200px] px-2 py-1 rounded-lg bg-white shadow-sm shadow-neutral-200"
+                            >
+                              <ul>
+                                <li
+                                  onClick={() => {
+                                    setOpenFilter(false);
+                                    setFilterEvs((pv: any) => ({
+                                      ...pv,
+                                      status: "",
+                                    }));
+                                  }}
+                                  className="cursor-pointer px-3 py-1.5 hover:bg-neutral-50 rounded-md flex items-center gap-1"
+                                >
+                                  <div className="icon">
+                                    <svg
+                                      width="25"
+                                      height="10"
+                                      viewBox="0 0 33 20"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <circle
+                                        cx="10"
+                                        cy="10"
+                                        r="10"
+                                        fill="#E7000B"
+                                      />
+                                      <ellipse
+                                        cx="16.5"
+                                        cy="10"
+                                        r="10"
+                                        ry="10"
+                                        fill="#D08700"
+                                      />
+                                      <circle
+                                        cx="23"
+                                        cy="10"
+                                        r="10"
+                                        fill="#009966"
+                                      />
+                                    </svg>
+                                  </div>
+                                  All Statuses
+                                </li>
+                                <li
+                                  onClick={() => {
+                                    setOpenFilter(false);
+                                    setFilterEvs((pv: any) => ({
+                                      ...pv,
+                                      status: "Ongoing",
+                                    }));
+                                  }}
+                                  className="cursor-pointer px-3 py-1.5 hover:bg-neutral-50 rounded-md flex items-center gap-1"
+                                >
+                                  <div className="icon">
+                                    <svg
+                                      width="10"
+                                      height="10"
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <circle
+                                        cx="10"
+                                        cy="10"
+                                        r="10"
+                                        fill="#009966"
+                                      />
+                                    </svg>
+                                  </div>
+                                  Ongoing
+                                </li>
+                                <li
+                                  onClick={() => {
+                                    setOpenFilter(false);
+                                    setFilterEvs((pv: any) => ({
+                                      ...pv,
+                                      status: "Upcoming",
+                                    }));
+                                  }}
+                                  className="cursor-pointer px-3 py-1.5 hover:bg-neutral-50 rounded-md flex items-center gap-1"
+                                >
+                                  <div className="icon">
+                                    <svg
+                                      width="10"
+                                      height="10"
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <circle
+                                        cx="10"
+                                        cy="10"
+                                        r="10"
+                                        fill="#D08700"
+                                      />
+                                    </svg>
+                                  </div>
+                                  Upcoming
+                                </li>
+                                <li
+                                  onClick={() => {
+                                    setOpenFilter(false);
+                                    setFilterEvs((pv: any) => ({
+                                      ...pv,
+                                      status: "Past",
+                                    }));
+                                  }}
+                                  className="cursor-pointer px-3 py-1.5 hover:bg-neutral-50 rounded-md flex items-center gap-1"
+                                >
+                                  <div className="icon">
+                                    <svg
+                                      width="10"
+                                      height="10"
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <circle
+                                        cx="10"
+                                        cy="10"
+                                        r="10"
+                                        fill="#E7000B"
+                                      />
+                                    </svg>
+                                  </div>
+                                  Past
+                                </li>
+                              </ul>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    {fetching && (
+                      <div className="grid place-content-center h-full w-full">
+                        <div className="flex items-center gap-2">
+                          <CircularProgress
+                            size={40}
+                            thickness={3}
+                            disableShrink
+                            sx={{
+                              color: "black", // spinner stroke
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {!fetching && (
+                      <div className="events flex flex-col gap-1 mt-2">
+                        {aEvs.length === 0 ? (
+                          <p className="text-center">You have no events.</p>
+                        ) : (
+                          aEvs.map((d, i) => {
+                            return (
+                              <>
+                                <div  onClick={() =>
+                                        router.push(`/view-event/${d.id}`)
+                                      } className="hover:bg-neutral-50 event flex justify-between items-center px-4 py-3 border-1 border-neutral-100 rounded-md">
+                                  <div>
+                                    <h1 className="text-sm font-[500]">
+                                      {d.name}
+                                    </h1>
+                                    <p className="text-xs">
+                                      {moment
+                                        .unix(d.date)
+                                        .utcOffset(d.offset)
+                                        .format("dddd, MMM DD, YYYY")}{" "}
+                                      {moment
+                                        .unix(d.startT)
+                                        .utcOffset(d.offset)
+                                        .format("hh:mm A")}{" "}
+                                      -{" "}
+                                      {moment
+                                        .unix(d.endT)
+                                        .utcOffset(d.offset)
+                                        .format("hh:mm A")}{" "}
+                                      (GMT
+                                      {d.offset / 60 >= 0
+                                        ? `+${d.offset / 60}`
+                                        : d.offset / 60}
+                                      ), {d.location}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-end flex-col justify-center">
+                                    <div className="status p-1.5 text-sm flex gap-1 items-center">
+                                      <div className="type border-1 border-neutral-100 shadow-sm shadow-neutral-50 text-xs  px-3 py-1 text-black rounded-full w-max flex gap-2 items-center">
+                                        {d.type === "Ordinary Event" ? (
+                                          <ArrowUpRight size="15px" />
+                                        ) : (
+                                          <ArrowLeftRight size="15px" />
+                                        )}
+                                        {d.type}
+                                      </div>
+                                      {d.status === "Upcoming" ? (
+                                        <div className="registered border-1 border-neutral-100 shadow-sm shadow-neutral-50 text-xs  px-3 py-1 text-black rounded-full w-max flex gap-2 items-center">
+                                          <div className="circle h-[12px] w-[12px] rounded-full bg-yellow-600"></div>
+                                          {d.status}
+                                        </div>
+                                      ) : d.status === "Ongoing" ? (
+                                        <div className="registered border-1 border-neutral-100 shadow-sm shadow-neutral-50 text-xs  px-3 py-1 text-black rounded-full w-max flex gap-2 items-center">
+                                          <div className="circle h-[12px] w-[12px] rounded-full bg-emerald-600"></div>
+                                          {d.status}
+                                        </div>
+                                      ) : (
+                                        <div className="registered border-1 border-neutral-100 shadow-sm shadow-neutral-50 text-xs  px-3 py-1 text-black rounded-full w-max flex gap-2 items-center">
+                                          <div className="circle h-[12px] w-[12px] rounded-full bg-red-600"></div>
+                                          {d.status}
+                                        </div>
+                                      )}
+                                    </div>
+                                 
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

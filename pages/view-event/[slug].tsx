@@ -1,46 +1,35 @@
 import {
-  ArrowDownRight,
+  AlertTriangle,
   ArrowLeft,
-  ArrowLeftRight,
-  ArrowRight,
-  ArrowUpRight,
-  Box,
-  Building,
-  Calendar,
+  Bell,
+  Boxes,
+  Briefcase,
   Check,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  CircleCheckBig,
+  CircleCheck,
+  CircleX,
   Clock,
   Download,
   Eye,
   FileQuestion,
   Filter,
   HomeIcon,
-  Info,
+  Mail,
   MapPin,
-  Menu,
   Pencil,
   Phone,
-  Plus,
   Printer,
   QrCode,
-  RedoDot,
+  QrCodeIcon,
   RefreshCcwDot,
-  ScanQrCode,
   Search,
   Smartphone,
-  Soup,
-  SquarePen,
   Trash,
   User,
   Users,
   X,
-  XCircle,
 } from "lucide-react";
-import { Geist, Geist_Mono } from "next/font/google";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,15 +37,42 @@ import { useDispatch, useSelector } from "react-redux";
 import { appUpdate, resetApp, selectApp } from "@/features/appSlice";
 import { AppDispatch } from "@/features/store";
 import axios from "axios";
-import jwt from "jsonwebtoken";
 import { useSecureRoute } from "@/hooks/UseSecureRoute";
 import { useClickOutside } from "@/hooks/UseClickOutside";
 import moment from "moment";
 import { CircularProgress } from "@mui/material";
-import Home from "..";
-import { printQR, printQRCodeCard } from "@/components/ViewEv_Deps/printQr";
-import { useModal } from "@/components/Modal/ModalContext";
+import { printQR } from "@/components/ViewEv_Deps/printQr";
+import { useModal } from "@/hooks/useModal";
 import Head from "next/head";
+import { Line, Pie } from "react-chartjs-2";
+
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ArcElement,
+} from "chart.js";
+import QRCode from "@/components/QRCode";
+import TextInput from "@/components/Inputs/TextInput";
+import Avatar from "@/components/Nav/Avatar";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ArcElement
+);
 
 interface OrdinaryEVViewer {
   name: string;
@@ -74,15 +90,73 @@ interface OrdinaryEVViewer {
   description: string;
 }
 
+export const options = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false,
+    },
+  },
+  scales: {
+    x: {
+      grid: {
+        display: false,
+      },
+    },
+  },
+};
+
+const setEditAtendeeDef = {
+  active: false,
+  attended: {
+    value: "",
+    err: "",
+  },
+  name: {
+    value: "",
+    err: "",
+  },
+  orgN: {
+    value: "",
+    err: "",
+  },
+  orgP: {
+    value: "",
+    err: "",
+  },
+  email: {
+    value: "",
+    err: "",
+  },
+  number: {
+    value: "",
+    err: "",
+  },
+  addr: {
+    value: "",
+    err: "",
+  },
+  salutation: {
+    value: "",
+    err: "",
+  },
+  id: "",
+};
+
 export default function ViewEvent() {
   const modal = useModal();
   const [isDeletingEvent, setIsDeletingEvent] = useState<boolean>(false);
-  const [fetching, setFetching] = useState<boolean>(false);
-  const [fetchingAtn, setFetchingAtn] = useState<boolean>(false);
+  const [fetching, setFetching] = useState<any>({
+    mainEvent: false,
+    lineAnalytics: false,
+    pieAnalytics: false,
+    atendees: false,
+    notifications: false,
+  });
   const [render, setRender] = useState<boolean>(false);
-  const [fx, setFx] = useState<boolean>(false);
   const usecure = useSecureRoute(() => {
-    setFx(true);
+    setRender(true);
   });
   const appData = useSelector(selectApp);
   const dispatch = useDispatch<AppDispatch>();
@@ -102,13 +176,105 @@ export default function ViewEvent() {
     status: "",
   });
 
+  const [rpdOrd, setRpdOrd] = useState<any>({
+    labels: [],
+    datasets: [
+      {
+        label: "Registrations",
+        data: [],
+        borderColor: "oklch(55.8% 0.288 302.321)",
+
+        tension: 0.6,
+
+        pointRadius: 4, // Visible point
+        pointHoverRadius: 6, // Enlarges on hover
+        pointBackgroundColor: "#fff",
+        pointHoverBackgroundColor: "#4338CA",
+        pointBorderColor: "#000",
+        pointHoverBorderColor: "#fff",
+      },
+    ],
+  });
+
+  const [pieData, setPieData] = useState<any>({
+    labels: ["Not In Event", "In Event"],
+    datasets: [
+      {
+        label: "Persons",
+        data: [],
+        backgroundColor: ["rgba(255, 99, 132, 0.2)", "rgba(54, 162, 235, 0.2)"],
+        borderColor: ["rgba(255, 99, 132, 1)", "rgba(54, 162, 235, 1)"],
+        borderWidth: 1,
+      },
+    ],
+  });
+
   const [search, setSearch] = useState<string>("");
   const [filtered, setFiltered] = useState<any[]>([]);
   const [atendees, setAtendees] = useState<any[]>([]);
 
   const [openProf, setOpenProf] = useState<boolean>(false);
-  const rfx = useClickOutside<HTMLDivElement>(() => {
+  const profilePopupRef = useClickOutside<HTMLDivElement>(() => {
     setOpenProf(false);
+  });
+
+  const [openNotifications, setOpenNotifications] = useState<boolean>(false);
+  const notificationPopupRef = useClickOutside<HTMLDivElement>(() => {
+    setOpenNotifications(false);
+  });
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [qrScanner, setQrScanner] = useState<boolean>(false);
+
+  const [viewAtendee, setViewAtendee] = useState<any>({
+    active: false,
+    attended: false,
+    name: "",
+    orgN: "",
+    orgP: "",
+    email: "",
+    number: "",
+    addr: "",
+    salutation: "",
+    registeredAt: 0,
+    id: "",
+  });
+
+  const [editAtendee, setEditAtendee] = useState<any>({
+    active: false,
+    attended: {
+      value: "",
+      err: "",
+    },
+    name: {
+      value: "",
+      err: "",
+    },
+    orgN: {
+      value: "",
+      err: "",
+    },
+    orgP: {
+      value: "",
+      err: "",
+    },
+    email: {
+      value: "",
+      err: "",
+    },
+    number: {
+      value: "",
+      err: "",
+    },
+    addr: {
+      value: "",
+      err: "",
+    },
+    salutation: {
+      value: "",
+      err: "",
+    },
+    id: "",
   });
 
   const router = useRouter();
@@ -126,97 +292,241 @@ export default function ViewEvent() {
     } catch (e) {}
   };
 
-  const getFormattedTime = (seconds: number, offset: number) => {
-    return moment.unix(seconds).utcOffset(offset).format("h:mm a");
+  const fetchEvent = (): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const rq = await axios.post(
+          `${process.env.NEXT_PUBLIC_API}/get-ord-event-data`,
+          { evId: router.query.slug },
+          {
+            withCredentials: true,
+            headers: { Authorization: `Bearer ${appData.acsTok}` },
+          }
+        );
+
+        const ev = rq.data.data;
+
+        const status =
+          moment().unix() < ev.startT._seconds
+            ? "Upcoming"
+            : moment().unix() >= ev.startT._seconds &&
+              moment().unix() <= ev.endT._seconds
+            ? "Ongoing"
+            : "Past";
+
+        setCurrEvent({
+          name: ev.name,
+          location: ev.location,
+          startT: ev.startT._seconds,
+          endT: ev.endT._seconds,
+          date: ev.date._seconds,
+          offsetT: ev.offset * -1,
+          allowWalkIn: ev.allowWalkIn,
+          atendeeLim: parseInt(ev.atendeeLim),
+          organizationId: ev.organizationId,
+          coverFile: ev.coverFile,
+          organizedBy: ev.organizedBy,
+          description: ev.description,
+          status: status,
+        });
+        resolve(`${ev.offset * -1}`);
+      } catch (e) {
+        reject("");
+      }
+    });
   };
 
-  const getFormattedDate = (milliseconds: number, offset: number) => {
-    return moment
-      .unix(Math.floor(milliseconds / 1000))
-      .utcOffset(offset)
-      .format("MMM DD, YYYY");
+  const fetchAtendees = (): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const rq2 = await axios.post(
+          `${process.env.NEXT_PUBLIC_API}/get-atendees?mode=all`,
+          { evId: router.query.slug },
+          {
+            withCredentials: true,
+            headers: { Authorization: `Bearer ${appData.acsTok}` },
+          }
+        );
+
+        const at = rq2.data.data;
+
+        let not_in_event = 0;
+        let in_event = 0;
+        at.forEach((atendee) => {
+          if (atendee.attended) {
+            in_event += 1;
+          } else {
+            not_in_event += 1;
+          }
+        });
+
+        // set pie data from vars
+        setPieData((pv) => ({
+          ...pv,
+          datasets: [
+            {
+              ...pv.datasets[0],
+              data: [not_in_event, in_event],
+            },
+          ],
+        }));
+
+        setAtendees([...at]);
+        resolve("");
+      } catch (e) {
+        reject("");
+      }
+    });
+  };
+
+  const fetchAnalyticsLine = (offset?: number): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const rq3 = await axios.post(
+          `${process.env.NEXT_PUBLIC_API}/fetch-ord-event-analytics`,
+          {
+            evId: router.query.slug,
+            offset: currEvent.offsetT || offset,
+            type: "rpd",
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${appData.acsTok}`,
+              "Content-Type": "application/json",
+            },
+            withCredentials: true,
+          }
+        );
+
+        const ev_analytics = rq3.data.data;
+
+        setRpdOrd((pv) => ({
+          labels: [],
+          datasets: [
+            {
+              ...pv.datasets[0],
+              data: [],
+            },
+          ],
+        }));
+
+        Object.keys(ev_analytics).forEach((date) => {
+          setRpdOrd((pv) => ({
+            labels: [...pv.labels, date],
+            datasets: [
+              {
+                ...pv.datasets[0],
+                data: [...pv.datasets[0].data, ev_analytics[date]], // ev_analytics[date] captures the value. {"date": v}
+              },
+            ],
+          }));
+        });
+        resolve("");
+      } catch (e) {
+        reject("");
+      }
+    });
+  };
+
+  const fetchNotifications = (): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const rq4 = await axios.post(
+          `${process.env.NEXT_PUBLIC_API}/fetch-notifications`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${appData.acsTok}`,
+            },
+            withCredentials: true,
+          }
+        );
+
+        let tmpnotif = [];
+        const notifs = rq4.data;
+
+        notifs.data.forEach((notification) => {
+          tmpnotif.push({
+            data: notification.data,
+            stamp: notification.stamp._seconds,
+            type: notification.type,
+          });
+        });
+
+        setNotifications([...tmpnotif]);
+        resolve("");
+      } catch (e) {
+        reject("");
+      }
+    });
   };
 
   const fetchEventData = async () => {
     try {
-      setFetching(true);
-      setFetchingAtn(true);
-      const rq = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/get-ord-event-data`,
-        { evId: router.query.slug },
-        {
-          withCredentials: true,
-          headers: { Authorization: `Bearer ${appData.acsTok}` },
-        }
-      );
-
-      const rq2 = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/get-atendees?mode=all`,
-        { evId: router.query.slug },
-        {
-          withCredentials: true,
-          headers: { Authorization: `Bearer ${appData.acsTok}` },
-        }
-      );
-
-      const ev = rq.data.data;
-      const at = rq2.data.data;
-
-      const status =
-        moment().unix() < ev.startT._seconds
-          ? "Upcoming"
-          : moment().unix() >= ev.startT._seconds &&
-            moment().unix() <= ev.endT._seconds
-          ? "Ongoing"
-          : "Past";
-
-      setCurrEvent({
-        name: ev.name,
-        location: ev.location,
-        startT: ev.startT._seconds,
-        endT: ev.endT._seconds,
-        date: ev.date._seconds,
-        offsetT: ev.offset * -1,
-        allowWalkIn: ev.allowWalkIn,
-        atendeeLim: parseInt(ev.atendeeLim),
-        organizationId: ev.organizationId,
-        coverFile: ev.coverFile,
-        organizedBy: ev.organizedBy,
-        description: ev.description,
-        status: status,
+      setFetching((pv) => ({
+        mainEvent: true,
+        lineAnalytics: true,
+        pieAnalytics: true,
+        atendees: true,
+        notifications: true,
+      }));
+      const f1 = await fetchEvent().catch((e) => {
+        throw new Error("Error occured.");
       });
-      setAtendees([...at]);
+
+      await fetchAtendees().catch((e) => {
+        throw new Error("Error occured.");
+      });
+
+      await fetchAnalyticsLine(parseInt(f1)).catch((e) => {
+        throw new Error("Error occured.");
+      });
+
+      await fetchNotifications().catch((e) => {
+        throw new Error("Error occured.");
+      });
+
       setTimeout(() => {
-        setFetching(false);
-        setFetchingAtn(false);
-      }, 1500);
+        setFetching((pv) => ({
+          mainEvent: false,
+          lineAnalytics: false,
+          pieAnalytics: false,
+          atendees: false,
+          notifications: false,
+        }));
+      }, 500);
       setRender(true);
     } catch (e) {
-      setFetchingAtn(false);
-      setFetching(false);
       setRender(false);
       router.push("/dashboard");
     }
   };
 
-  const reFetchAtn = async () => {
-    try {
-      setFetchingAtn(true);
-      const rq2 = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/get-atendees?mode=all`,
-        { evId: router.query.slug },
-        {
-          withCredentials: true,
-          headers: { Authorization: `Bearer ${appData.acsTok}` },
-        }
-      );
+  const refetchAtendees = async () => {
+    setFetching((pv) => ({
+      ...pv,
+      lineAnalytics: true,
+      pieAnalytics: true,
+      atendees: true,
+    }));
 
-      setAtendees([...rq2.data.data]);
-      setTimeout(() => {
-        setFetchingAtn(false);
-      }, 1500);
+    try {
+      await fetchAtendees().catch((e) => {
+        throw new Error("Error occured.");
+      });
+
+      await fetchAnalyticsLine(currEvent.offsetT).catch((e) => {
+        throw new Error("Error occured.");
+      });
+
+      setFetching((pv) => ({
+        ...pv,
+        lineAnalytics: false,
+        pieAnalytics: false,
+        atendees: false,
+      }));
     } catch (e) {
-      setFetchingAtn(false);
+      router.push("/dashboard");
     }
   };
 
@@ -307,11 +617,266 @@ export default function ViewEvent() {
     });
   };
 
-  useEffect(() => {
-    if (!fx || !router.query.slug || !appData.acsTok) return;
-    fetchEventData();
-  }, [router.query.slug, appData.acsTok, fx]);
+  const deleteAtendee = (id: string, qrId: string): Promise<any> => {
+    const cacheId = id;
+    const cacheQrId = qrId;
+    return new Promise(async (resolve, reject) => {
+      try {
+        const x = await axios
+          .post(
+            `${process.env.NEXT_PUBLIC_API}/delete-atendee`,
+            { id: cacheId, qrId: cacheQrId },
+            {
+              withCredentials: true,
+              headers: { Authorization: `Bearer ${appData.acsTok}` },
+            }
+          )
+          .catch((e) => {
+            throw new Error("Error in deleting atendee.");
+          });
+        resolve("Atendee has been deleted.");
+      } catch (e) {
+        reject(e.message);
+      }
+    });
+  };
 
+  const handleDeleteAtendee = (id: string, name: string, qrId: string) => {
+    modal.promise(
+      <FileQuestion />,
+      "Atendee Deletion",
+      `Confirm delete ${name}? ${name}'s Eventra Passport will be invalid, and data can't be recovered.`,
+      () => {},
+      () => {},
+      "Delete",
+      "Cancel",
+      () => deleteAtendee(id, qrId),
+      "Deleting atendee...",
+      <Check />,
+      "Delete complete",
+      "Your atendee has been deleted.",
+      () => {
+        refetchAtendees();
+      },
+      () => {},
+      "Proceed",
+      "",
+      <X />,
+      "Fail",
+      "We have failed to delete your atendee.",
+      () => {},
+      () => {},
+      "Try again",
+      "Exit"
+    );
+  };
+
+  const updateEditedAtendee = async () => {
+    let err = false;
+    Object.keys(editAtendee).forEach((key) => {
+      if (key === "active" || key === "id" || key === "addr") return;
+      if (
+        key === "email" &&
+        !editAtendee.email.value.match(
+          /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/
+        )
+      ) {
+        setEditAtendee((pv) => ({
+          ...pv,
+          email: {
+            ...pv.email,
+            err: "Invalid email.",
+          },
+        }));
+        err = true;
+      }
+      if (!editAtendee[key].value) {
+        setEditAtendee((pv) => ({
+          ...pv,
+          [key]: {
+            ...pv[key],
+            err: "This field is required.",
+          },
+        }));
+        err = true;
+      }
+    });
+
+    if (err) return;
+
+    setEditAtendee((pv) => ({
+      ...pv,
+      active: false,
+    }));
+
+    const req = () => {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const rx = await axios
+            .post(
+              `${process.env.NEXT_PUBLIC_API}/update-atendee-org`,
+              {
+                id: editAtendee.id,
+                data: {
+                  addr: editAtendee.addr.value,
+                  attended:
+                    editAtendee.attended.value === "true" ? true : false,
+                  email: editAtendee.email.value,
+                  name: editAtendee.name.value,
+                  orgN: editAtendee.orgN.value,
+                  orgP: editAtendee.orgP.value,
+                  phoneNumber: editAtendee.number.value,
+                  salutations: editAtendee.salutation.value,
+                },
+              },
+              {
+                withCredentials: true,
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${appData.acsTok}`,
+                },
+              }
+            )
+            .catch((e) => {
+              throw new Error(e.response.data.err);
+            });
+          resolve("");
+        } catch (e) {
+          reject("");
+        }
+      });
+    };
+
+    modal.promise(
+      <FileQuestion />,
+      "Confirm Atendee Update",
+      `Update this atendee? Previous data won't be saved.`,
+      () => {},
+      () => {},
+      "Update",
+      "Cancel",
+      () => req(),
+      "Updating atendee...",
+      <Check />,
+      "Update complete",
+      "Your atendee has been updated.",
+      () => {
+        setEditAtendee(setEditAtendeeDef);
+        refetchAtendees();
+      },
+      () => {
+        setEditAtendee(setEditAtendeeDef);
+      },
+      "Proceed",
+      "",
+      <X />,
+      "Fail",
+      "We have failed to update your atendee.",
+      () => {
+        updateEditedAtendee();
+      },
+      () => {
+        setEditAtendee(setEditAtendeeDef);
+      },
+      "Try again",
+      "Exit"
+    );
+  };
+
+  const resendEmail = (id: string) => {
+    const req = () => {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const rx = await axios
+            .post(
+              `${process.env.NEXT_PUBLIC_API}/resend-email-ord`,
+              {
+                id: id,
+              },
+              {
+                withCredentials: true,
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${appData.acsTok}`,
+                },
+              }
+            )
+            .catch((e) => {
+              throw new Error(e.response.data.err);
+            });
+
+          resolve("");
+        } catch (e) {
+          reject("");
+        }
+      });
+    };
+    modal.close();
+    modal.promise(
+      <Mail />,
+      "Resend Email?",
+      `Confirm to resend e-mail confirmation?`,
+      () => {},
+      () => {},
+      "Send E-Mail",
+      "Cancel",
+      () => req(),
+      "Resending E-Mail confirmation...",
+      <Check />,
+      "Confirmation E-Mail sent",
+      "Your atendee has been sent a confirmation e-mail.",
+      () => {
+        setViewAtendee({
+          active: false,
+          attended: false,
+          name: "",
+          orgN: "",
+          orgP: "",
+          email: "",
+          number: "",
+          addr: "",
+          salutation: "",
+          registeredAt: 0,
+          id: "",
+        });
+      },
+      () => {},
+      "Proceed",
+      "",
+      <X />,
+      "Fail",
+      "We have failed to send your atendee a confirmation e-mail.",
+      () => {
+        console.log("EXEC");
+        resendEmail(viewAtendee.id);
+      },
+      () => {
+        setViewAtendee({
+          active: false,
+          attended: false,
+          name: "",
+          orgN: "",
+          orgP: "",
+          email: "",
+          number: "",
+          addr: "",
+          salutation: "",
+          registeredAt: 0,
+          id: "",
+        });
+      },
+      "Try again",
+      "Exit"
+    );
+  };
+
+  useEffect(() => {
+    // only fetch when router slug is present, and acsTok is present
+    if (!router.query.slug || !appData.acsTok) return;
+    fetchEventData();
+  }, [router.query.slug, appData.acsTok]);
+
+  // handles atendee filtration
   useEffect(() => {
     if (atendees.length === 0) return;
     const tmp = atendees.filter((attendee) =>
@@ -328,485 +893,923 @@ export default function ViewEvent() {
   return (
     <>
       <Head>
-        <title>Eventra | Welcome</title>
+        <title>Eventra | View Event ({router.query.slug})</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <AnimatePresence>
-        {isDeletingEvent && (
+        {viewAtendee.active && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             key={1}
-            className="fixed top-0 left-0 bg-slate-900/50 h-full w-full grid place-content-center z-[99999999] inter"
+            className="registration-form fixed w-full h-full top-0 left-0 bg-neutral-900/70 z-[9999] geist overflow-y-auto py-5 px-5"
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              key={2}
-              className="bg-white px-7 py-5 rounded-full flex gap-5 items-center text-sm"
-            >
-              <CircularProgress
-                disableShrink
-                value={70}
-                thickness={6}
-                size={15}
-                sx={{
-                  color: "black",
+            <div className="flex items-center justify-center min-h-screen w-full">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  transition: { delay: 0.2, duration: 0.2 },
                 }}
-              />
-              <p className="font-[600]">Deleting your event...</p>
-            </motion.div>
+                exit={{ opacity: 0, scale: 0.9 }}
+                key={13}
+                className="form w-full max-w-[400px] bg-white rounded-xl overflow-hidden "
+              >
+                <div className="px-5 py-2 flex justify-between items-center bg-emerald-600 text-white">
+                  <h1 className=" font-[500]">Atendee Information</h1>
+                  <div
+                    className="p-2 rounded-full w-max cursor-pointer"
+                    onClick={() => {
+                      setViewAtendee({
+                        active: false,
+                        attended: false,
+                        name: "",
+                        orgN: "",
+                        orgP: "",
+                        email: "",
+                        number: "",
+                        addr: "",
+                        salutation: "",
+                        registeredAt: 0,
+                        id: "",
+                      });
+                    }}
+                  >
+                    <X size="15px" strokeWidth={5} />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 px-5 py-5">
+                  {viewAtendee.attended && (
+                    <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
+                      IN EVENT
+                    </p>
+                  )}
+                  {!viewAtendee.attended && (
+                    <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
+                      NOT IN EVENT
+                    </p>
+                  )}
+                  <h1 className="font-[600] text-xl">{viewAtendee.name}</h1>
+                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
+                    <Briefcase size="15px" />
+                    {viewAtendee.orgN} - {viewAtendee.orgP}
+                  </p>
+                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
+                    <Mail size="15px" />
+                    {viewAtendee.email}
+                  </p>
+                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
+                    <Phone size="15px" />
+                    {viewAtendee.number}
+                  </p>
+                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
+                    <MapPin size="15px" />
+                    {viewAtendee.addr || "N/A"}
+                  </p>
+                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
+                    <User size="15px" />
+                    Salutation: {viewAtendee.salutation}
+                  </p>
+                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
+                    <Clock size="15px" />
+                    Registered at:{" "}
+                    {moment
+                      .unix(viewAtendee.registeredAt)
+                      .format("MMM DD, YYYY - hh:mm:ss A")}
+                  </p>
+                </div>
+                <div className="px-5 py-4 flex gap-2">
+                  <button
+                    onClick={() => resendEmail(viewAtendee.id)}
+                    className="px-5 text-black border-1 hover:bg-neutral-50 border-neutral-100 w-1/2 flex gap-2 items-center justify-center py-1.5 rounded-md text-sm"
+                  >
+                    <Mail size="12px" strokeWidth={3} className="shrink-0" />{" "}
+                    Resend E-Mail
+                  </button>
+                  <button
+                    onClick={() =>
+                      printQR({
+                        eventName: currEvent.name,
+                        attendeeName: viewAtendee.name,
+                        organization: viewAtendee.orgN,
+                        position: viewAtendee.orgP,
+                        identifier: viewAtendee.id,
+                      })
+                    }
+                    className="px-5 bg-emerald-600 text-white w-1/2 flex gap-2 items-center justify-center py-1.5 rounded-md text-sm"
+                  >
+                    <Printer size="12px" strokeWidth={3} className="shrink-0" />{" "}
+                    Print Passport
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-      <main className="min-h-screen w-full bg-[#f5f6fb]">
-        <header className="eventra-container flex bg-[#f5f6fb] justify-between py-5 items-center select-none px-5 sticky top-0 left-0 z-[999]">
-          <div className="logo flex items-center gap-1">
+      <QRCode
+        ev={currEvent.name}
+        active={qrScanner}
+        onExit={() => {
+          setQrScanner(false);
+        }}
+        onSuccessPulse={() => {
+          refetchAtendees();
+        }}
+        onFailPulse={() => {}}
+      />
+      <AnimatePresence>
+        {editAtendee.active && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            key={1}
+            className="registration-form fixed w-full h-full top-0 left-0 bg-neutral-900/70 z-[9999] geist overflow-y-auto py-5 px-5"
+          >
+            <div className="flex items-center justify-center min-h-screen w-full">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  transition: { delay: 0.2, duration: 0.2 },
+                }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                key={13}
+                className="form w-full max-w-[600px] bg-white rounded-xl overflow-hidden "
+              >
+                <div className="px-5 py-2 flex justify-between items-center bg-emerald-600 text-white">
+                  <h1 className=" font-[500]">Edit Atendee</h1>
+                  <div
+                    className="p-2 rounded-full w-max cursor-pointer"
+                    onClick={() => {
+                      setEditAtendee(setEditAtendeeDef);
+                    }}
+                  >
+                    <X size="15px" strokeWidth={5} />
+                  </div>
+                </div>
+                <div className="p-5 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <TextInput
+                      identifier="name"
+                      title="Atendee Name"
+                      value={editAtendee.name.value}
+                      placeholder=""
+                      onInput={(e) => {
+                        setEditAtendee((pv) => ({
+                          ...pv,
+                          name: {
+                            err: "",
+                            value: e,
+                          },
+                        }));
+                      }}
+                      error={editAtendee.name.err}
+                      className="w-1/2"
+                      req
+                    />
+                    <TextInput
+                      identifier="salutation"
+                      title="Salutations"
+                      value={editAtendee.salutation.value}
+                      placeholder=""
+                      onInput={(e) => {
+                        setEditAtendee((pv) => ({
+                          ...pv,
+                          salutation: {
+                            err: "",
+                            value: e,
+                          },
+                        }));
+                      }}
+                      error={editAtendee.salutation.err}
+                      className="w-1/2"
+                      req
+                    />
+                  </div>
+                  <TextInput
+                    identifier="email"
+                    title="E-Mail"
+                    value={editAtendee.email.value}
+                    placeholder=""
+                    onInput={(e) => {
+                      setEditAtendee((pv) => ({
+                        ...pv,
+                        email: {
+                          err: "",
+                          value: e,
+                        },
+                      }));
+                    }}
+                    error={editAtendee.email.err}
+                    className=""
+                    req
+                  />
+                  <div className="flex gap-2">
+                    <TextInput
+                      identifier="orgN"
+                      title="Organization Name"
+                      value={editAtendee.orgN.value}
+                      placeholder=""
+                      onInput={(e) => {
+                        setEditAtendee((pv) => ({
+                          ...pv,
+                          orgN: {
+                            err: "",
+                            value: e,
+                          },
+                        }));
+                      }}
+                      error={editAtendee.orgN.err}
+                      className="w-1/2"
+                      req
+                    />
+                    <TextInput
+                      identifier="orgP"
+                      title="Organization Position"
+                      value={editAtendee.orgP.value}
+                      placeholder=""
+                      onInput={(e) => {
+                        setEditAtendee((pv) => ({
+                          ...pv,
+                          orgP: {
+                            err: "",
+                            value: e,
+                          },
+                        }));
+                      }}
+                      error={editAtendee.orgP.err}
+                      className="w-1/2"
+                      req
+                    />
+                  </div>
+                  <TextInput
+                    identifier="ph"
+                    title="Phone Number"
+                    value={editAtendee.number.value}
+                    placeholder=""
+                    onInput={(e) => {
+                      setEditAtendee((pv) => ({
+                        ...pv,
+                        number: {
+                          err: "",
+                          value: e,
+                        },
+                      }));
+                    }}
+                    error={editAtendee.number.err}
+                    className=""
+                    req
+                  />
+                  <TextInput
+                    identifier="address"
+                    title="Address"
+                    value={editAtendee.addr.value}
+                    placeholder=""
+                    onInput={(e) => {
+                      setEditAtendee((pv) => ({
+                        ...pv,
+                        addr: {
+                          err: "",
+                          value: e,
+                        },
+                      }));
+                    }}
+                    error={editAtendee.addr.err}
+                    className=""
+                  />
+                  <div>
+                    <label htmlFor="attended" className="font-[500] text-sm">
+                      Status
+                      <span className="font-[500] text-red-600">*</span>
+                    </label>
+                    <select
+                      name="attended"
+                      id=""
+                      value={editAtendee.attended.value}
+                      onChange={(e) => {
+                        setEditAtendee((pv) => ({
+                          ...pv,
+                          attended: {
+                            value: (e.target as HTMLSelectElement).value,
+                            err: "",
+                          },
+                        }));
+                      }}
+                      className="mt-1.5 w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
+                    >
+                      <option value="true">IN EVENT</option>
+                      <option value="false">NOT IN EVENT</option>
+                    </select>
+                  </div>
+                  <div className="buttons flex justify-end">
+                    <button
+                      onClick={() => {
+                        updateEditedAtendee();
+                      }}
+                      className="px-5 bg-emerald-600 text-white w-max flex gap-2 items-center justify-center py-1.5 rounded-md text-sm"
+                    >
+                      Upload Changes
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <main className="min-h-screen w-full bg-[#fff] inter">
+        <nav className="w-full h-[60px] bg-white border-b-2 border-neutral-100 flex">
+          <div className="h-full w-[60px] grid place-content-center border-r-2 border-neutral-100">
             <svg
               width="30"
-              height="39"
-              viewBox="0 0 99 89"
+              height="26"
+              viewBox="0 0 30 26"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <circle cx="43.5" cy="36.5" r="25.5" fill="#EE1818" />
-              <circle cx="62.5" cy="46.5" r="25.5" fill="#FED11C" />
-              <circle cx="36.5" cy="52.5" r="25.5" fill="#A118FD" />
+              <ellipse cx="13" cy="9.5" rx="9" ry="9.5" fill="#F11716" />
+              <circle cx="20.5" cy="13.5" r="9.5" fill="#FDD21A" />
+              <circle cx="9.5" cy="16.5" r="9.5" fill="#AA2AD4" />
             </svg>
-
+          </div>
+          <div className="h-full w-[204px] border-r-2 border-neutral-100 flex items-center pl-5">
             <svg
-              width="77"
-              height="39"
-              viewBox="0 0 37 9"
+              width="129"
+              height="31"
+              viewBox="0 0 129 31"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="mx-auto"
             >
-              <path
-                d="M3.864 8.06C3.208 8.06 2.632 7.924 2.136 7.652C1.64 7.372 1.252 6.992 0.972 6.512C0.692 6.024 0.552 5.468 0.552 4.844C0.552 4.22 0.684 3.668 0.948 3.188C1.22 2.708 1.588 2.332 2.052 2.06C2.524 1.78 3.052 1.64 3.636 1.64C4.228 1.64 4.752 1.776 5.208 2.048C5.672 2.312 6.036 2.688 6.3 3.176C6.564 3.656 6.696 4.212 6.696 4.844C6.696 4.884 6.692 4.928 6.684 4.976C6.684 5.016 6.684 5.06 6.684 5.108H1.2V4.472H6.228L5.892 4.724C5.892 4.268 5.792 3.864 5.592 3.512C5.4 3.152 5.136 2.872 4.8 2.672C4.464 2.472 4.076 2.372 3.636 2.372C3.204 2.372 2.816 2.472 2.472 2.672C2.128 2.872 1.86 3.152 1.668 3.512C1.476 3.872 1.38 4.284 1.38 4.748V4.88C1.38 5.36 1.484 5.784 1.692 6.152C1.908 6.512 2.204 6.796 2.58 7.004C2.964 7.204 3.4 7.304 3.888 7.304C4.272 7.304 4.628 7.236 4.956 7.1C5.292 6.964 5.58 6.756 5.82 6.476L6.3 7.028C6.02 7.364 5.668 7.62 5.244 7.796C4.828 7.972 4.368 8.06 3.864 8.06ZM8.74472 8L5.94872 1.7H6.83672L9.40472 7.544H8.98472L11.5887 1.7H12.4287L9.62072 8H8.74472ZM14.9288 8.06C14.2728 8.06 13.6968 7.924 13.2008 7.652C12.7048 7.372 12.3168 6.992 12.0368 6.512C11.7568 6.024 11.6168 5.468 11.6168 4.844C11.6168 4.22 11.7488 3.668 12.0128 3.188C12.2848 2.708 12.6528 2.332 13.1168 2.06C13.5888 1.78 14.1168 1.64 14.7008 1.64C15.2928 1.64 15.8168 1.776 16.2728 2.048C16.7368 2.312 17.1008 2.688 17.3648 3.176C17.6288 3.656 17.7608 4.212 17.7608 4.844C17.7608 4.884 17.7568 4.928 17.7488 4.976C17.7488 5.016 17.7488 5.06 17.7488 5.108H12.2648V4.472H17.2928L16.9568 4.724C16.9568 4.268 16.8568 3.864 16.6568 3.512C16.4648 3.152 16.2008 2.872 15.8648 2.672C15.5288 2.472 15.1408 2.372 14.7008 2.372C14.2688 2.372 13.8808 2.472 13.5368 2.672C13.1928 2.872 12.9248 3.152 12.7328 3.512C12.5408 3.872 12.4448 4.284 12.4448 4.748V4.88C12.4448 5.36 12.5488 5.784 12.7568 6.152C12.9728 6.512 13.2688 6.796 13.6448 7.004C14.0288 7.204 14.4648 7.304 14.9528 7.304C15.3368 7.304 15.6928 7.236 16.0208 7.1C16.3568 6.964 16.6448 6.756 16.8848 6.476L17.3648 7.028C17.0848 7.364 16.7328 7.62 16.3088 7.796C15.8928 7.972 15.4328 8.06 14.9288 8.06ZM21.5227 1.64C22.0347 1.64 22.4827 1.74 22.8668 1.94C23.2587 2.132 23.5627 2.428 23.7787 2.828C24.0027 3.228 24.1147 3.732 24.1147 4.34V8H23.2627V4.424C23.2627 3.76 23.0947 3.26 22.7587 2.924C22.4307 2.58 21.9667 2.408 21.3667 2.408C20.9187 2.408 20.5267 2.5 20.1907 2.684C19.8627 2.86 19.6067 3.12 19.4227 3.464C19.2467 3.8 19.1587 4.208 19.1587 4.688V8H18.3067V1.7H19.1227V3.428L18.9907 3.104C19.1907 2.648 19.5107 2.292 19.9507 2.036C20.3907 1.772 20.9147 1.64 21.5227 1.64ZM27.2081 8.06C26.6161 8.06 26.1601 7.9 25.8401 7.58C25.5201 7.26 25.3601 6.808 25.3601 6.224V0.308H26.2121V6.176C26.2121 6.544 26.3041 6.828 26.4881 7.028C26.6801 7.228 26.9521 7.328 27.3041 7.328C27.6801 7.328 27.9921 7.22 28.2401 7.004L28.5401 7.616C28.3721 7.768 28.1681 7.88 27.9281 7.952C27.6961 8.024 27.4561 8.06 27.2081 8.06ZM24.2321 2.408V1.7H28.1321V2.408H24.2321ZM28.8911 8V1.7H29.7071V3.416L29.6231 3.116C29.7991 2.636 30.0951 2.272 30.5111 2.024C30.9271 1.768 31.4431 1.64 32.0591 1.64V2.468C32.0271 2.468 31.9951 2.468 31.9631 2.468C31.9311 2.46 31.8991 2.456 31.8671 2.456C31.2031 2.456 30.6831 2.66 30.3071 3.068C29.9311 3.468 29.7431 4.04 29.7431 4.784V8H28.8911ZM35.893 8V6.608L35.857 6.38V4.052C35.857 3.516 35.705 3.104 35.401 2.816C35.105 2.528 34.661 2.384 34.069 2.384C33.661 2.384 33.273 2.452 32.905 2.588C32.537 2.724 32.225 2.904 31.969 3.128L31.585 2.492C31.905 2.22 32.289 2.012 32.737 1.868C33.185 1.716 33.657 1.64 34.153 1.64C34.969 1.64 35.597 1.844 36.037 2.252C36.485 2.652 36.709 3.264 36.709 4.088V8H35.893ZM33.721 8.06C33.249 8.06 32.837 7.984 32.485 7.832C32.141 7.672 31.877 7.456 31.693 7.184C31.509 6.904 31.417 6.584 31.417 6.224C31.417 5.896 31.493 5.6 31.645 5.336C31.805 5.064 32.061 4.848 32.413 4.688C32.773 4.52 33.253 4.436 33.853 4.436H36.025V5.072H33.877C33.269 5.072 32.845 5.18 32.605 5.396C32.373 5.612 32.257 5.88 32.257 6.2C32.257 6.56 32.397 6.848 32.677 7.064C32.957 7.28 33.349 7.388 33.853 7.388C34.333 7.388 34.745 7.28 35.089 7.064C35.441 6.84 35.697 6.52 35.857 6.104L36.049 6.692C35.889 7.108 35.609 7.44 35.209 7.688C34.817 7.936 34.321 8.06 33.721 8.06Z"
-                fill="black"
-              />
+              <g clip-path="url(#clip0_42_267)">
+                <path
+                  d="M6.89541 15.779C5.67577 15.779 4.62032 15.5155 3.72904 14.9885C2.85341 14.4615 2.17323 13.7097 1.6885 12.7332C1.21941 11.7567 0.984863 10.6175 0.984863 9.31548C0.984863 8.01348 1.21941 6.88198 1.6885 5.92098C2.17323 4.94448 2.85341 4.19273 3.72904 3.66573C4.60468 3.12323 5.63668 2.85198 6.82504 2.85198C7.95086 2.85198 8.94377 3.11548 9.80377 3.64248C10.6638 4.15398 11.3283 4.89798 11.7974 5.87448C12.2821 6.85098 12.5245 8.02898 12.5245 9.40848V10.0362H3.56486C3.62741 11.2452 3.94795 12.152 4.5265 12.7565C5.12068 13.361 5.91814 13.6632 6.91886 13.6632C7.65377 13.6632 8.26359 13.4927 8.74832 13.1517C9.23304 12.8107 9.56923 12.3535 9.75686 11.78L12.3369 11.9427C12.0085 13.0897 11.3596 14.0197 10.3901 14.7327C9.43632 15.4302 8.27141 15.779 6.89541 15.779ZM3.56486 8.17623H9.89759C9.81941 7.07573 9.49886 6.26198 8.93595 5.73498C8.38868 5.20798 7.68504 4.94448 6.82504 4.94448C5.93377 4.94448 5.19886 5.22348 4.62032 5.78148C4.05741 6.32398 3.70559 7.12223 3.56486 8.17623ZM15.8504 15.5L11.3002 3.13098H13.9506L17.3515 12.989L20.7524 3.13098H23.4262L18.8526 15.5H15.8504ZM28.0521 15.779C26.8325 15.779 25.777 15.5155 24.8857 14.9885C24.0101 14.4615 23.3299 13.7097 22.8452 12.7332C22.3761 11.7567 22.1416 10.6175 22.1416 9.31548C22.1416 8.01348 22.3761 6.88198 22.8452 5.92098C23.3299 4.94448 24.0101 4.19273 24.8857 3.66573C25.7614 3.12323 26.7934 2.85198 27.9817 2.85198C29.1076 2.85198 30.1005 3.11548 30.9605 3.64248C31.8205 4.15398 32.485 4.89798 32.9541 5.87448C33.4388 6.85098 33.6812 8.02898 33.6812 9.40848V10.0362H24.7216C24.7841 11.2452 25.1047 12.152 25.6832 12.7565C26.2774 13.361 27.0748 13.6632 28.0756 13.6632C28.8105 13.6632 29.4203 13.4927 29.905 13.1517C30.3897 12.8107 30.7259 12.3535 30.9136 11.78L33.4936 11.9427C33.1652 13.0897 32.5163 14.0197 31.5468 14.7327C30.593 15.4302 29.4281 15.779 28.0521 15.779ZM24.7216 8.17623H31.0543C30.9761 7.07573 30.6556 6.26198 30.0927 5.73498C29.5454 5.20798 28.8417 4.94448 27.9817 4.94448C27.0905 4.94448 26.3556 5.22348 25.777 5.78148C25.2141 6.32398 24.8623 7.12223 24.7216 8.17623ZM34.0895 15.5V3.13098H36.3646L36.4584 6.43248L36.1535 6.26973C36.2942 5.46373 36.56 4.81273 36.9509 4.31673C37.3418 3.82073 37.8187 3.45648 38.3817 3.22398C38.9446 2.97598 39.5544 2.85198 40.2111 2.85198C41.1493 2.85198 41.9233 3.06123 42.5331 3.47973C43.1586 3.88273 43.6276 4.44073 43.9404 5.15373C44.2687 5.85123 44.4329 6.64948 44.4329 7.54848V15.5H41.9467V8.29248C41.9467 7.56398 41.8686 6.95173 41.7122 6.45573C41.5558 5.95973 41.2978 5.57998 40.9382 5.31648C40.5786 5.05298 40.1095 4.92123 39.5309 4.92123C38.6553 4.92123 37.9438 5.20798 37.3966 5.78148C36.8493 6.35498 36.5757 7.19198 36.5757 8.29248V15.5H34.0895ZM49.7275 15.5C48.5391 15.5 47.6635 15.2287 47.1006 14.6862C46.5377 14.1437 46.2562 13.299 46.2562 12.152V0.224731H48.7424V11.966C48.7424 12.5395 48.8675 12.9347 49.1177 13.1517C49.3678 13.3687 49.7509 13.4772 50.2669 13.4772H52.0495V15.5H49.7275ZM44.3564 5.15373V3.13098H52.0495V5.15373H44.3564ZM52.5663 15.5V3.13098H54.8414L54.9352 6.40923L54.7241 6.33948C54.8961 5.22348 55.2401 4.40973 55.7561 3.89823C56.2878 3.38673 56.9992 3.13098 57.8905 3.13098H59.0867V5.33973H57.8905C57.2651 5.33973 56.7412 5.44048 56.3191 5.64198C55.8969 5.84348 55.5763 6.15348 55.3574 6.57198C55.1541 6.99048 55.0525 7.53298 55.0525 8.19948V15.5H52.5663ZM62.2875 15.779C60.9897 15.779 59.9499 15.4845 59.1681 14.8955C58.4019 14.3065 58.0188 13.4772 58.0188 12.4077C58.0188 11.3382 58.3394 10.509 58.9804 9.91998C59.6372 9.31548 60.6457 8.88148 62.0061 8.61798L66.2983 7.80423C66.2983 6.84323 66.0715 6.13023 65.6181 5.66523C65.1646 5.18473 64.4923 4.94448 63.601 4.94448C62.8035 4.94448 62.1781 5.12273 61.7246 5.47923C61.2712 5.82023 60.9584 6.33173 60.7864 7.01373L58.2299 6.85098C58.4644 5.61098 59.043 4.63448 59.9655 3.92148C60.9037 3.20848 62.1155 2.85198 63.601 2.85198C65.2897 2.85198 66.5719 3.30148 67.4475 4.20048C68.3388 5.08398 68.7844 6.33173 68.7844 7.94373V12.7565C68.7844 13.051 68.8314 13.2602 68.9252 13.3842C69.0346 13.4927 69.2066 13.547 69.4412 13.547H69.8868V15.5C69.8086 15.5155 69.6835 15.531 69.5115 15.5465C69.3395 15.562 69.1597 15.5697 68.9721 15.5697C68.4404 15.5697 67.9792 15.4845 67.5883 15.314C67.213 15.1435 66.9315 14.8645 66.7439 14.477C66.5563 14.074 66.4624 13.5392 66.4624 12.8727L66.7204 12.989C66.5954 13.5315 66.3217 14.012 65.8995 14.4305C65.493 14.849 64.9692 15.1822 64.3281 15.4302C63.7026 15.6627 63.0224 15.779 62.2875 15.779ZM62.6863 13.826C63.4368 13.826 64.0779 13.6865 64.6095 13.4075C65.1412 13.113 65.5555 12.71 65.8526 12.1985C66.1497 11.687 66.2983 11.1057 66.2983 10.4547V9.66423L62.6394 10.3617C61.8888 10.5012 61.3572 10.726 61.0444 11.036C60.7474 11.3305 60.5988 11.7102 60.5988 12.1752C60.5988 12.7022 60.7786 13.113 61.1383 13.4075C61.5135 13.6865 62.0295 13.826 62.6863 13.826ZM78.3911 15.779C77.2185 15.779 76.2178 15.5 75.3891 14.942C74.576 14.3685 73.9584 13.5935 73.5362 12.617C73.114 11.6405 72.9029 10.5477 72.9029 9.33873C72.9029 8.12973 73.1062 7.04473 73.5127 6.08373C73.9349 5.10723 74.5447 4.33223 75.3422 3.75873C76.1553 3.18523 77.1404 2.89848 78.2973 2.89848C79.4544 2.89848 80.4238 3.17748 81.2057 3.73548C82.0031 4.29348 82.6051 5.05298 83.0117 6.01398C83.4338 6.95948 83.6449 8.03673 83.6449 9.24573V9.61773H74.0991C74.146 11.2142 74.5525 12.462 75.3187 13.361C76.1005 14.2445 77.1247 14.6862 78.3911 14.6862C79.4075 14.6862 80.2362 14.446 80.8773 13.9655C81.5184 13.4695 81.9562 12.8262 82.1907 12.0357L83.4104 12.1287C83.0977 13.1827 82.5035 14.0585 81.6278 14.756C80.7522 15.438 79.6733 15.779 78.3911 15.779ZM74.0991 8.61798H82.4018C82.3393 7.16098 81.9484 6.02948 81.2291 5.22348C80.5255 4.40198 79.5482 3.99123 78.2973 3.99123C77.1091 3.99123 76.1396 4.40198 75.3891 5.22348C74.6385 6.02948 74.2085 7.16098 74.0991 8.61798ZM87.2866 15.5L82.6661 3.17748H83.8857L87.9903 14.4072L92.0948 3.17748H93.3145L88.6939 15.5H87.2866ZM97.8302 15.779C96.6575 15.779 95.6568 15.5 94.8281 14.942C94.015 14.3685 93.3973 13.5935 92.9751 12.617C92.553 11.6405 92.3419 10.5477 92.3419 9.33873C92.3419 8.12973 92.5451 7.04473 92.9517 6.08373C93.3739 5.10723 93.9837 4.33223 94.7812 3.75873C95.5942 3.18523 96.5793 2.89848 97.7364 2.89848C98.8935 2.89848 99.863 3.17748 100.645 3.73548C101.442 4.29348 102.044 5.05298 102.451 6.01398C102.873 6.95948 103.084 8.03673 103.084 9.24573V9.61773H93.5381C93.585 11.2142 93.9915 12.462 94.7577 13.361C95.5395 14.2445 96.5637 14.6862 97.8302 14.6862C98.8466 14.6862 99.6753 14.446 100.316 13.9655C100.958 13.4695 101.395 12.8262 101.63 12.0357L102.85 12.1287C102.537 13.1827 101.943 14.0585 101.067 14.756C100.191 15.438 99.1124 15.779 97.8302 15.779ZM93.5381 8.61798H101.841C101.778 7.16098 101.388 6.02948 100.668 5.22348C99.9646 4.40198 98.9873 3.99123 97.7364 3.99123C96.5481 3.99123 95.5786 4.40198 94.8281 5.22348C94.0775 6.02948 93.6475 7.16098 93.5381 8.61798ZM103.81 15.5V3.17748H104.865L104.912 6.47898L104.748 6.40923C104.857 5.63423 105.115 4.99098 105.522 4.47948C105.928 3.95248 106.429 3.55723 107.023 3.29373C107.633 3.03023 108.297 2.89848 109.017 2.89848C109.955 2.89848 110.729 3.10773 111.339 3.52623C111.948 3.94473 112.402 4.51048 112.699 5.22348C112.996 5.92098 113.145 6.70373 113.145 7.57173V15.5H112.019V8.12973C112.019 7.29273 111.909 6.56423 111.69 5.94423C111.471 5.30873 111.127 4.82048 110.658 4.47948C110.189 4.12298 109.564 3.94473 108.782 3.94473C107.609 3.94473 106.671 4.32448 105.967 5.08398C105.279 5.84348 104.935 6.85873 104.935 8.12973V15.5H103.81ZM118.014 15.5C117.107 15.5 116.427 15.283 115.973 14.849C115.535 14.415 115.316 13.764 115.316 12.896V0.294481H116.442V12.8495C116.442 13.454 116.583 13.8802 116.864 14.1282C117.146 14.3762 117.56 14.5002 118.107 14.5002H119.562V15.5H118.014ZM113.252 4.17723V3.17748H119.562V4.17723H113.252ZM124.358 15.779C123.31 15.779 122.411 15.6085 121.661 15.2675C120.91 14.911 120.324 14.4382 119.902 13.8492C119.48 13.2447 119.245 12.5627 119.198 11.8032L120.371 11.687C120.449 12.586 120.832 13.3145 121.52 13.8725C122.208 14.415 123.154 14.6862 124.358 14.6862C125.468 14.6862 126.32 14.5002 126.915 14.1282C127.509 13.7407 127.806 13.1672 127.806 12.4077C127.806 12.0047 127.712 11.656 127.524 11.3615C127.352 11.067 126.993 10.8112 126.446 10.5942C125.898 10.3617 125.07 10.1525 123.959 9.96648C122.787 9.76498 121.88 9.51698 121.239 9.22248C120.613 8.91248 120.175 8.54048 119.925 8.10648C119.691 7.65698 119.573 7.12223 119.573 6.50223C119.573 5.43273 119.964 4.56473 120.746 3.89823C121.544 3.23173 122.615 2.89848 123.959 2.89848C124.898 2.89848 125.687 3.06898 126.328 3.40998C126.985 3.75098 127.509 4.20823 127.9 4.78173C128.291 5.33973 128.549 5.95973 128.674 6.64173L127.501 6.78123C127.423 6.28523 127.235 5.82798 126.938 5.40948C126.657 4.97548 126.266 4.63448 125.765 4.38648C125.265 4.12298 124.663 3.99123 123.959 3.99123C122.959 3.99123 122.177 4.20823 121.614 4.64223C121.051 5.07623 120.77 5.68848 120.77 6.47898C120.77 6.97498 120.871 7.37798 121.074 7.68798C121.278 7.99798 121.637 8.25373 122.153 8.45523C122.669 8.64123 123.389 8.81173 124.311 8.96673C125.515 9.16823 126.453 9.41623 127.126 9.71073C127.798 10.0052 128.275 10.3695 128.556 10.8035C128.838 11.2375 128.979 11.7645 128.979 12.3845C128.979 13.113 128.791 13.733 128.416 14.2445C128.04 14.7405 127.509 15.1202 126.821 15.3837C126.133 15.6472 125.312 15.779 124.358 15.779Z"
+                  fill="#1D0C4E"
+                />
+                <path
+                  d="M4.36249 28.086C3.58067 28.086 2.91873 27.9 2.37667 27.528C1.84503 27.1457 1.43849 26.629 1.15703 25.978C0.886001 25.327 0.750488 24.5985 0.750488 23.7925C0.750488 22.9865 0.886001 22.2632 1.15703 21.6225C1.43849 20.9715 1.84503 20.4548 2.37667 20.0725C2.91873 19.6902 3.58067 19.499 4.36249 19.499C4.98794 19.499 5.53 19.6178 5.98867 19.8555C6.45776 20.0932 6.83825 20.4187 7.13012 20.832C7.422 21.2453 7.63049 21.7258 7.75558 22.2735L6.95812 22.3355C6.80176 21.6638 6.50467 21.1472 6.06685 20.7855C5.62903 20.4135 5.06091 20.2275 4.36249 20.2275C3.49727 20.2275 2.80927 20.5478 2.29849 21.1885C1.79812 21.8188 1.54794 22.6868 1.54794 23.7925C1.54794 24.8982 1.79812 25.7713 2.29849 26.412C2.80927 27.0423 3.49727 27.3575 4.36249 27.3575C5.06091 27.3575 5.63946 27.1612 6.09812 26.7685C6.55679 26.3758 6.85388 25.8178 6.9894 25.0945L7.78685 25.1565C7.67218 25.7248 7.4637 26.2312 7.1614 26.6755C6.86952 27.1095 6.48382 27.4557 6.00431 27.714C5.53522 27.962 4.98794 28.086 4.36249 28.086ZM10.5072 27.9C9.90261 27.9 9.44915 27.7553 9.14682 27.466C8.85497 27.1767 8.70901 26.7427 8.70901 26.164V17.763H9.45955V26.133C9.45955 26.536 9.55337 26.8202 9.74101 26.9855C9.92864 27.1508 10.2049 27.2335 10.5697 27.2335H11.5392V27.9H10.5072ZM7.33303 20.3515V19.685H11.5392V20.3515H7.33303ZM11.1139 27.9L14.2099 23.746L11.239 19.685H12.1146L14.6946 23.2655L17.2277 19.685H18.119L15.1637 23.7615L18.2441 27.9H17.3684L14.7102 24.2265L12.0208 27.9H11.1139ZM20.7637 27.9C20.159 27.9 19.7056 27.7553 19.4033 27.466C19.1114 27.1767 18.9655 26.7427 18.9655 26.164V17.763H19.7161V26.133C19.7161 26.536 19.8099 26.8202 19.9975 26.9855C20.1852 27.1508 20.4614 27.2335 20.8262 27.2335H21.7957V27.9H20.7637ZM17.5895 20.3515V19.685H21.7957V20.3515H17.5895ZM25.2125 28.086C24.4307 28.086 23.7635 27.9 23.211 27.528C22.669 27.1457 22.2572 26.629 21.9758 25.978C21.6943 25.327 21.5536 24.5985 21.5536 23.7925C21.5536 22.9865 21.6891 22.2632 21.9601 21.6225C22.2416 20.9715 22.6481 20.4548 23.1798 20.0725C23.7218 19.6902 24.3785 19.499 25.1499 19.499C25.9214 19.499 26.5676 19.685 27.0888 20.057C27.6205 20.429 28.0218 20.9353 28.2928 21.576C28.5743 22.2063 28.715 22.9245 28.715 23.7305V23.9785H22.351C22.3823 25.0428 22.6534 25.8747 23.1641 26.474C23.6854 27.063 24.3681 27.3575 25.2125 27.3575C25.8901 27.3575 26.4425 27.1973 26.8699 26.877C27.2974 26.5463 27.5892 26.1175 27.7456 25.5905L28.5587 25.6525C28.3502 26.3552 27.9541 26.939 27.3703 27.404C26.7865 27.8587 26.0672 28.086 25.2125 28.086ZM22.351 23.312H27.8863C27.8446 22.3407 27.584 21.5863 27.1045 21.049C26.6354 20.5013 25.9839 20.2275 25.1499 20.2275C24.3577 20.2275 23.7114 20.5013 23.211 21.049C22.7107 21.5863 22.424 22.3407 22.351 23.312ZM32.2636 28.086C31.4818 28.086 30.8198 27.9 30.2778 27.528C29.7462 27.1457 29.3396 26.629 29.0582 25.978C28.7871 25.327 28.6516 24.5985 28.6516 23.7925C28.6516 22.9865 28.7871 22.2632 29.0582 21.6225C29.3396 20.9715 29.7462 20.4548 30.2778 20.0725C30.8198 19.6902 31.4818 19.499 32.2636 19.499C32.8891 19.499 33.4311 19.6178 33.8898 19.8555C34.3589 20.0932 34.7394 20.4187 35.0313 20.832C35.3231 21.2453 35.5316 21.7258 35.6567 22.2735L34.8593 22.3355C34.7029 21.6638 34.4058 21.1472 33.968 20.7855C33.5302 20.4135 32.962 20.2275 32.2636 20.2275C31.3984 20.2275 30.7104 20.5478 30.1996 21.1885C29.6993 21.8188 29.4491 22.6868 29.4491 23.7925C29.4491 24.8982 29.6993 25.7713 30.1996 26.412C30.7104 27.0423 31.3984 27.3575 32.2636 27.3575C32.962 27.3575 33.5406 27.1612 33.9993 26.7685C34.458 26.3758 34.755 25.8178 34.8905 25.0945L35.688 25.1565C35.5733 25.7248 35.3649 26.2312 35.0625 26.6755C34.7707 27.1095 34.3849 27.4557 33.9054 27.714C33.4364 27.962 32.8891 28.086 32.2636 28.086ZM36.0221 27.9V16.895H36.7726V21.793L36.6788 21.7775C36.7413 21.2712 36.9029 20.8475 37.1635 20.5065C37.4346 20.1655 37.7733 19.9123 38.1799 19.747C38.5864 19.5817 39.0295 19.499 39.509 19.499C40.124 19.499 40.6348 19.6385 41.0413 19.9175C41.4479 20.1862 41.7502 20.5582 41.9482 21.0335C42.1464 21.4985 42.2453 22.0255 42.2453 22.6145V27.9H41.4948V22.9865C41.4948 22.1288 41.328 21.452 40.9944 20.956C40.6609 20.4497 40.1084 20.1965 39.337 20.1965C38.5448 20.1965 37.9193 20.4497 37.4606 20.956C37.002 21.4623 36.7726 22.1392 36.7726 22.9865V27.9H36.0221ZM43.1354 27.9V19.685H43.8391L43.8703 21.886L43.7609 21.8395C43.8338 21.3228 44.0058 20.894 44.2769 20.553C44.5479 20.2017 44.8815 19.9382 45.2776 19.7625C45.6842 19.5868 46.1271 19.499 46.6067 19.499C47.2322 19.499 47.7482 19.6385 48.1547 19.9175C48.5612 20.1965 48.8635 20.5737 49.0616 21.049C49.2596 21.514 49.3587 22.0358 49.3587 22.6145V27.9H48.6082V22.9865C48.6082 22.4285 48.5352 21.9428 48.3892 21.5295C48.2433 21.1058 48.014 20.7803 47.7013 20.553C47.3885 20.3153 46.9715 20.1965 46.4503 20.1965C45.6685 20.1965 45.0431 20.4497 44.574 20.956C44.1153 21.4623 43.886 22.1392 43.886 22.9865V27.9H43.1354ZM53.4357 28.086C52.7059 28.086 52.07 27.9103 51.528 27.559C50.9859 27.2077 50.5637 26.7117 50.2615 26.071C49.9695 25.4303 49.8237 24.6708 49.8237 23.7925C49.8237 22.9142 49.9695 22.1547 50.2615 21.514C50.5637 20.8733 50.9859 20.3773 51.528 20.026C52.07 19.6747 52.7059 19.499 53.4357 19.499C54.1653 19.499 54.8012 19.6747 55.3433 20.026C55.8853 20.3773 56.3023 20.8733 56.5942 21.514C56.8964 22.1547 57.0477 22.9142 57.0477 23.7925C57.0477 24.6708 56.8964 25.4303 56.5942 26.071C56.3023 26.7117 55.8853 27.2077 55.3433 27.559C54.8012 27.9103 54.1653 28.086 53.4357 28.086ZM53.4357 27.3575C54.3113 27.3575 54.9993 27.0423 55.4996 26.412C56 25.7713 56.2502 24.8982 56.2502 23.7925C56.2502 22.6868 56 21.8188 55.4996 21.1885C54.9993 20.5478 54.3113 20.2275 53.4357 20.2275C52.56 20.2275 51.872 20.5478 51.3717 21.1885C50.8713 21.8188 50.6211 22.6868 50.6211 23.7925C50.6211 24.8982 50.8713 25.7713 51.3717 26.412C51.872 27.0423 52.56 27.3575 53.4357 27.3575ZM59.0595 27.9C58.6217 27.9 58.2777 27.7915 58.0275 27.5745C57.7773 27.3472 57.6522 27.0062 57.6522 26.5515V16.895H58.4028V26.5205C58.4028 26.7478 58.4653 26.9235 58.5904 27.0475C58.7259 27.1715 58.9188 27.2335 59.169 27.2335H59.7319V27.9H59.0595ZM63.0966 28.086C62.3669 28.086 61.731 27.9103 61.1889 27.559C60.6469 27.2077 60.2247 26.7117 59.9224 26.071C59.6305 25.4303 59.4846 24.6708 59.4846 23.7925C59.4846 22.9142 59.6305 22.1547 59.9224 21.514C60.2247 20.8733 60.6469 20.3773 61.1889 20.026C61.731 19.6747 62.3669 19.499 63.0966 19.499C63.8262 19.499 64.4622 19.6747 65.0042 20.026C65.5462 20.3773 65.9633 20.8733 66.2551 21.514C66.5575 22.1547 66.7086 22.9142 66.7086 23.7925C66.7086 24.6708 66.5575 25.4303 66.2551 26.071C65.9633 26.7117 65.5462 27.2077 65.0042 27.559C64.4622 27.9103 63.8262 28.086 63.0966 28.086ZM63.0966 27.3575C63.9722 27.3575 64.6602 27.0423 65.1606 26.412C65.6609 25.7713 65.9111 24.8982 65.9111 23.7925C65.9111 22.6868 65.6609 21.8188 65.1606 21.1885C64.6602 20.5478 63.9722 20.2275 63.0966 20.2275C62.2209 20.2275 61.5329 20.5478 61.0326 21.1885C60.5322 21.8188 60.282 22.6868 60.282 23.7925C60.282 24.8982 60.5322 25.7713 61.0326 26.412C61.5329 27.0423 62.2209 27.3575 63.0966 27.3575ZM70.1931 30.411C69.6094 30.411 69.083 30.3077 68.6139 30.101C68.1553 29.8943 67.78 29.6102 67.488 29.2485C67.2066 28.8868 67.0398 28.4735 66.9877 28.0085L67.7851 27.9465C67.8477 28.4735 68.0822 28.892 68.4888 29.202C68.9058 29.5223 69.4739 29.6825 70.1931 29.6825C71.0375 29.6825 71.6942 29.4603 72.1633 29.016C72.6429 28.582 72.8826 27.9568 72.8826 27.1405V25.637C72.6429 26.195 72.2884 26.6445 71.8193 26.9855C71.3502 27.3265 70.7873 27.497 70.1306 27.497C69.4322 27.497 68.8224 27.3317 68.3011 27.001C67.78 26.6703 67.3734 26.2053 67.0815 25.606C66.7897 24.9963 66.6437 24.2885 66.6437 23.4825C66.6437 22.6868 66.7844 21.9945 67.0659 21.4055C67.3578 20.8062 67.7643 20.3412 68.2855 20.0105C68.8067 19.6695 69.4166 19.499 70.115 19.499C70.7822 19.499 71.3607 19.685 71.8506 20.057C72.3406 20.4187 72.6898 20.8785 72.8982 21.4365V19.685H73.6331V27.1405C73.6331 27.8225 73.4924 28.4063 73.211 28.892C72.9295 29.388 72.5334 29.7652 72.0226 30.0235C71.5118 30.2818 70.902 30.411 70.1931 30.411ZM70.1462 26.7685C70.9698 26.7685 71.6265 26.474 72.1164 25.885C72.6168 25.296 72.8722 24.4952 72.8826 23.4825C72.8826 22.8418 72.768 22.2787 72.5386 21.793C72.3197 21.297 72.0018 20.9147 71.5848 20.646C71.1782 20.367 70.6987 20.2275 70.1462 20.2275C69.3123 20.2275 68.6504 20.522 68.1604 21.111C67.6809 21.6897 67.4411 22.4802 67.4411 23.4825C67.4411 24.4952 67.6862 25.296 68.1761 25.885C68.666 26.474 69.3227 26.7685 70.1462 26.7685ZM74.6403 27.9V19.685H75.3908V27.9H74.6403ZM74.609 18.2435V17.019H75.4221V18.2435H74.609ZM79.5515 28.086C78.7697 28.086 78.1023 27.9 77.5498 27.528C77.0078 27.1457 76.596 26.629 76.3145 25.978C76.0331 25.327 75.8924 24.5985 75.8924 23.7925C75.8924 22.9865 76.0279 22.2632 76.2989 21.6225C76.5804 20.9715 76.9869 20.4548 77.5185 20.0725C78.0607 19.6902 78.7173 19.499 79.489 19.499C80.2598 19.499 80.9064 19.685 81.4279 20.057C81.9595 20.429 82.3606 20.9353 82.6319 21.576C82.9133 22.2063 83.0541 22.9245 83.0541 23.7305V23.9785H76.6898C76.7211 25.0428 76.9921 25.8747 77.5029 26.474C78.0241 27.063 78.7071 27.3575 79.5515 27.3575C80.2286 27.3575 80.7813 27.1973 81.209 26.877C81.6358 26.5463 81.9282 26.1175 82.0846 25.5905L82.8977 25.6525C82.6889 26.3552 82.2926 26.939 81.7093 27.404C81.1253 27.8587 80.406 28.086 79.5515 28.086ZM76.6898 23.312H82.2253C82.1831 22.3407 81.9228 21.5863 81.4435 21.049C80.9744 20.5013 80.3224 20.2275 79.489 20.2275C78.6962 20.2275 78.0502 20.5013 77.5498 21.049C77.0495 21.5863 76.7628 22.3407 76.6898 23.312ZM86.4307 28.086C85.7318 28.086 85.1329 27.9723 84.6325 27.745C84.1322 27.5073 83.7413 27.1922 83.4598 26.7995C83.1784 26.3965 83.022 25.9418 82.9907 25.4355L83.7725 25.358C83.8241 25.9573 84.0798 26.443 84.5387 26.815C84.9969 27.1767 85.6278 27.3575 86.4307 27.3575C87.1703 27.3575 87.7387 27.2335 88.1351 26.9855C88.5307 26.7272 88.7293 26.3448 88.7293 25.8385C88.7293 25.5698 88.6667 25.3373 88.5416 25.141C88.4267 24.9447 88.1867 24.7742 87.8224 24.6295C87.4573 24.4745 86.9045 24.335 86.1649 24.211C85.3831 24.0767 84.778 23.9113 84.3511 23.715C83.9336 23.5083 83.642 23.2603 83.4755 22.971C83.3191 22.6713 83.2409 22.3148 83.2409 21.9015C83.2409 21.1885 83.5012 20.6098 84.0227 20.1655C84.5544 19.7212 85.2682 19.499 86.1649 19.499C86.7904 19.499 87.3165 19.6127 87.7442 19.84C88.182 20.0673 88.5307 20.3722 88.7918 20.7545C89.0522 21.1265 89.2242 21.5398 89.3078 21.9945L88.526 22.0875C88.4736 21.7568 88.3485 21.452 88.1507 21.173C87.9631 20.8837 87.702 20.6563 87.3689 20.491C87.0351 20.3153 86.634 20.2275 86.1649 20.2275C85.4972 20.2275 84.9765 20.3722 84.6013 20.6615C84.226 20.9508 84.0384 21.359 84.0384 21.886C84.0384 22.2167 84.1056 22.4853 84.2416 22.692C84.3769 22.8987 84.6169 23.0692 84.9609 23.2035C85.3049 23.3275 85.7842 23.4412 86.3995 23.5445C87.2016 23.6788 87.8271 23.8442 88.2758 24.0405C88.7238 24.2368 89.042 24.4797 89.2296 24.769C89.4173 25.0583 89.5111 25.4097 89.5111 25.823C89.5111 26.3087 89.386 26.722 89.1358 27.063C88.8856 27.3937 88.5307 27.6468 88.0725 27.8225C87.6136 27.9982 87.0663 28.086 86.4307 28.086Z"
+                  fill="#4E4E4E"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_42_267">
+                  <rect width="129" height="31" fill="white" />
+                </clipPath>
+              </defs>
             </svg>
           </div>
-          <div className="controls inter flex gap-2 text-sm ">
-            <div className="relative usr-log shadow-sm shadow-neutral-200 bg-white rounded-full px-2 py-3 items-center flex gap-2">
-              <div className="avatar h-[33px] w-[33px] rounded-full overflow-hidden border-2 border-emerald-600">
-                <img src={appData.logo} alt="" className="h-full w-full" />
-              </div>
-              <p className="font-[500] text-sm">{appData.org_name}</p>
-              <button className="text-neutral-600">
-                {!openProf ? (
-                  <ChevronDown onClick={() => setOpenProf(true)} />
-                ) : (
-                  <ChevronUp onClick={() => setOpenProf(false)} />
-                )}
-              </button>
-              <AnimatePresence>
-                {openProf && (
-                  <motion.div
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 10, opacity: 0 }}
-                    key={1}
-                    className="absolute top-[120%] right-0 bg-white rounded-2xl w-[400px] overflow-hidden"
-                    ref={rfx}
-                  >
-                    <div className="py-5 px-5 flex gap-2 items-center border-b-1 border-neutral-200">
-                      <div className="avatar h-[33px] w-[33px] rounded-full overflow-hidden border-2 border-emerald-600">
-                        <img
-                          src={appData.logo}
-                          alt=""
-                          className="h-full w-full"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-[500]">{appData.org_name}</p>
-                        <p className="text-xs">{appData.country}</p>
-                      </div>
-                    </div>
-                    <ul className="flex gap-1 flex-col p-2">
-                      <li className="py-3 px-5 rounded-2xl hover:bg-neutral-50 cursor-pointer">
-                        Manage
-                      </li>
-                      <li
-                        className="py-3 px-5  rounded-2xl hover:bg-neutral-50 text-red-600 font-[500] cursor-pointer"
-                        onClick={() => handleLogout()}
-                      >
-                        Log Out
-                      </li>
-                    </ul>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          <div
+            className="h-full flex items-center justify-between px-5"
+            style={{ width: "calc(100% - 264px)" }}
+          >
+            <div>
+              <h1 className="font-[400] text-base flex gap-2 items-center">
+                <Boxes size="18px" strokeWidth={1.5} /> Events{" "}
+                <ChevronRight className="text-neutral-600" />{" "}
+                <p className="font-[500]">
+                  {fetching.mainEvent
+                    ? "Getting event information..."
+                    : currEvent.name}
+                </p>
+              </h1>
             </div>
-          </div>
-        </header>
-        <section className="eventra-container inter px-5 pb-5">
-          <div className="flex gap-5 mt-5">
-            <nav className="side-navi w-full max-w-[300px] select-none mt-18">
-              <ul className="flex flex-col gap-2 text-sm">
-                <li
-                  onClick={() => router.push("/events")}
-                  className="font-[500]  hover:bg-neutral-50 transition-colors flex items-center px-7 py-4 shadow-sm shadow-neutral-200 rounded-full gap-2 bg-white  text-neutral-600 cursor-pointer"
+            <div className="flex gap-2 h-full py-3 border-l-2 border-neutral-100 pl-5 px-3">
+              <div className="h-full relative">
+                <button
+                  onClick={() => setOpenNotifications((pv) => !pv)}
+                  className="flex gap-2 items-center  h-full pl-3 pr-5 text-sm border-1 border-neutral-200 hover:bg-black hover:text-white font-[300]"
+                  style={
+                    openNotifications
+                      ? { color: "white", backgroundColor: "black" }
+                      : {}
+                  }
                 >
-                  <ArrowLeft size="20px" /> Go To Events
-                </li>
-                {currEvent.status !== "Past" && (
-                  <>
-                    {currEvent.allowWalkIn && (
-                      <li
-                        onClick={() => router.push(`/attend/${appData.id}`)}
-                        className="font-[500]  hover:bg-neutral-50 transition-colors flex items-center px-7 py-4 shadow-sm shadow-neutral-200 rounded-full gap-2 bg-white  text-neutral-600 cursor-pointer"
-                      >
-                        <Plus size="20px" /> Register an Atendee
-                      </li>
-                    )}
-                    {currEvent.status === "Ongoing" && (
-                      <li className="font-[500]  hover:bg-neutral-50 transition-colors flex items-center px-7 py-4 shadow-sm shadow-neutral-200 rounded-full gap-2 bg-white  text-neutral-600 cursor-pointer">
-                        <QrCode size="20px" /> Scan Atendee QR
-                      </li>
-                    )}
-                  </>
-                )}
-                {currEvent.status === "Upcoming" && (
-                  <li className="font-[500]  hover:bg-neutral-50 transition-colors flex items-center px-7 py-4 shadow-sm shadow-neutral-200 rounded-full gap-2 bg-white  text-neutral-600 cursor-pointer">
-                    <Pencil size="20px" /> Edit Event
-                  </li>
-                )}
-                <div className="mt-5 border-t-1 border-neutral-200">
-                  <li
-                    onClick={() => handleEvDelete()}
-                    className=" mt-5 font-[500]  hover:bg-red-500 transition-colors flex items-center px-7 py-4 shadow-sm shadow-neutral-200 rounded-full gap-2 bg-red-600 text-red-100   cursor-pointer"
+                  <Bell size="15px" /> Notifications
+                </button>
+                {openNotifications && (
+                  <div
+                    ref={notificationPopupRef}
+                    className="z-[999] max-h-[300px] overflow-y-scroll absolute top-[110%] right-0 bg-white border-1 border-neutral-100 overflow-hidden rounded-lg w-[500px] py-2 text-sm flex flex-col gap-1"
                   >
-                    <Trash size="20px" /> Delete Event
-                  </li>
-                </div>
-              </ul>
-            </nav>
-            <div className="main-dash w-full">
-              <h1 className="text-2xl font-[600]">Event Viewer</h1>
-              <div className="dash-start mt-10">
-                <div className="w-full mt-5 rounded-2xl p-5  bg-white shadow-sm shadow-neutral-200">
-                  <div className="flex justify-between items-center">
-                    <h1 className="text-sm font-[500]">
-                      View Event ID ({router.query.slug as string})
-                    </h1>
-                  </div>
-
-                  {fetching && (
-                    <>
-                      <div className="h-[600px]">
-                        <div className="loading h-full w-full grid place-content-center">
-                          <CircularProgress disableShrink />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  {!fetching && (
-                    <div className="mt-5">
-                      <div className="flex gap-5">
-                        <div className="coverFile aspect-video w-1/2 bg-red-200 rounded-xl overflow-hidden">
-                          <img
-                            src={currEvent.coverFile}
-                            alt=""
-                            className="h-full w-full object-cover"
+                    {!fetching.notifications &&
+                      notifications.map((d, i) => {
+                        return (
+                          <>
+                            <div className=" px-5 py-1 border-y-1 border-neutral-100">
+                              <h1 className="type font-[500]">
+                                {d.type === "EVN-001" && "Registration"}
+                              </h1>
+                              <p>{d.data}</p>
+                              <p className="text-right text-xs">
+                                {moment
+                                  .unix(parseInt(d.stamp))
+                                  .format("MMM DD hh:mm:ss A")}
+                              </p>
+                            </div>
+                          </>
+                        );
+                      })}
+                    {fetching.notifications && (
+                      <div className="grid place-content-center h-full w-full">
+                        <div className="flex items-center gap-2">
+                          <CircularProgress
+                            size={40}
+                            thickness={3}
+                            disableShrink
+                            sx={{
+                              color: "black", // spinner stroke
+                            }}
                           />
                         </div>
-                        <div className="w-1/2">
-                          <div className="border-b-1 border-neutral-200 pb-5">
-                            {currEvent.status === "Upcoming" ? (
-                              <div className="registered text-sm font-[500] w-max flex gap-2 items-center">
-                                <div className="circle h-[12px] w-[12px] rounded-full bg-yellow-600"></div>
-                                {currEvent.status}
-                              </div>
-                            ) : currEvent.status === "Ongoing" ? (
-                              <div className="registered text-sm font-[500] w-max flex gap-2 items-center">
-                                <div className="circle h-[12px] w-[12px] rounded-full bg-emerald-600"></div>
-                                {currEvent.status}
-                              </div>
-                            ) : (
-                              <div className="registered text-sm font-[500] w-max flex gap-2 items-center">
-                                <div className="circle h-[12px] w-[12px] rounded-full bg-red-600"></div>
-                                {currEvent.status}
-                              </div>
-                            )}
-
-                            <h1 className="font-[700] text-2xl mt-2">
-                              {currEvent.name}
-                            </h1>
-                            <div className="flex gap-2 mt-2">
-                              <div className="icon mt-1">
-                                <Calendar
-                                  size="16px"
-                                  className="text-neutral-600"
-                                />
-                              </div>
-                              <div className="">
-                                <p className="font-[500]">
-                                  {getFormattedDate(
-                                    currEvent.date * 1000,
-                                    currEvent.offsetT
-                                  )}
-                                </p>
-                                <p className="text-sm text-neutral-600 flex gap-2 items-center">
-                                  <Clock size="15px" />
-                                  {getFormattedTime(
-                                    currEvent.startT,
-                                    currEvent.offsetT
-                                  )}{" "}
-                                  -{" "}
-                                  {getFormattedTime(
-                                    currEvent.endT,
-                                    currEvent.offsetT
-                                  )}{" "}
-                                  (GMT+8)
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex gap-2 mt-2">
-                              <div className="icon mt-1">
-                                <MapPin
-                                  size="16px"
-                                  className="text-neutral-600"
-                                />
-                              </div>
-                              <div className="">
-                                <p className="font-[500]">
-                                  {currEvent.location}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="properties mt-5">
-                            <h1 className="font-[700] text-sm mb-2 text-neutral-600">
-                              EVENT PROPERTIES
-                            </h1>
-                            {currEvent.allowWalkIn ? (
-                              <div className="flex items-center gap-2">
-                                <CircleCheckBig
-                                  size="17px"
-                                  className="text-emerald-600"
-                                />
-                                <p className="font-[500] ">
-                                  Walk-in is allowed.
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <XCircle size="17px" className="text-red-600" />
-                                <p className="font-[500] ">
-                                  Walk-in is not allowed.
-                                </p>
-                              </div>
-                            )}
-                            <div className="flex gap-2 mt-2">
-                              <div className="icon mt-1">
-                                <Users
-                                  size="16px"
-                                  className="text-neutral-600"
-                                />
-                              </div>
-                              <div className="">
-                                <p className="font-[500]">Event Capacity</p>
-                                <p className="text-sm text-neutral-600 flex gap-2 items-center">
-                                  {currEvent.atendeeLim} atendee
-                                  {currEvent.atendeeLim > 1 ? "s" : ""}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2 mt-2">
-                              <div className="icon mt-1">
-                                <Building
-                                  size="16px"
-                                  className="text-neutral-600"
-                                />
-                              </div>
-                              <div className="">
-                                <p className="font-[500]">Organized By</p>
-                                <p className="text-sm text-neutral-600 flex gap-2 items-center">
-                                  {currEvent.organizedBy}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-                <div className="w-full mt-5 rounded-2xl p-5  bg-white shadow-sm shadow-neutral-200">
-                  {!fetchingAtn && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <h1 className=" font-[500]">Atendees</h1>
-                        <div className="flex gap-2 items-center">
-                          <div className="search flex relative items-center">
-                            <Search
-                              size="15px"
-                              className="absolute right-[10px] top-1/2 translate-y-[-50%]"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Find an atendee..."
-                              onInput={(d) => {
-                                setSearch((d.target as HTMLInputElement).value);
-                              }}
-                              value={search}
-                              className="text-xs w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
-                            />
-                          </div>
-                          <div>
-                            <button
-                              onClick={() => reFetchAtn()}
-                              className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-5 py-1.5 text-black flex items-center gap-2 rounded-md"
-                            >
-                              <RefreshCcwDot size="15px" /> Refresh{" "}
-                            </button>
-                          </div>
-                          <div>
-                            <button className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-5 py-1.5 text-black flex items-center gap-2 rounded-md">
-                              <Filter size="15px" /> Filter{" "}
-                              <ChevronDown size="15px" />
-                            </button>
-                          </div>
-                          <div>
-                            <button className="text-xs bg-black hover:bg-neutral-800 px-5 py-1.5 text-white flex items-center gap-2 rounded-md">
-                              <Download size="15px" /> Export Data
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {filtered.length === 0 && (
-                        <p className="text-center mt-10">No atendees.</p>
-                      )}
-
-                      {filtered.length !== 0 && (
-                        <>
-                          <div className="atendee-table mt-5 rounded-lg overflow-hidden border-1 border-neutral-200 max-h-[500px] overflow-y-scroll">
-                            <div className="grid grid-cols-6 bg-neutral-100 text-neutral-600 font-[500] geist text-sm sticky top-0">
-                              <div className="px-5 py-2">Atendee</div>
-                              <div className="px-5 py-2">Organization</div>
-                              <div className="px-5 py-2">
-                                Dietary Requirements
-                              </div>
-                              <div className="px-5 py-2">Registered On</div>
-                              <div className="px-5 py-2">In Event?</div>
-                              <div className="px-5 py-2 text-right">
-                                Options
-                              </div>
-                            </div>
-
-                            {filtered.map((d, i) => {
-                              return (
-                                <div
-                                  key={i}
-                                  className="grid grid-cols-6 border-b-1 border-neutral-200 font-[500] geist text-sm"
-                                >
-                                  <div className="px-5 py-2  flex justify-center flex-col">
-                                    <p className="truncate">{d.name}</p>
-                                    <p className="font-[400] text-neutral-800 truncate">
-                                      {d.email}
-                                    </p>
-                                  </div>
-                                  <div className="px-5 py-2  flex justify-center flex-col">
-                                    <p>{d.orgN}</p>
-                                    <p className="font-[400] text-neutral-800 flex items-center gap-1 truncate">
-                                      <Smartphone
-                                        size="12px"
-                                        className="shrink-0"
-                                      />
-                                      {d.orgP}
-                                    </p>
-                                  </div>
-                                  <div className="px-5 py-2 flex items-center">
-                                    <p className="font-[400] flex gap-1 items-center truncate">
-                                      <Soup size="12px" className="shrink-0" />
-                                      {d.diet}
-                                    </p>
-                                  </div>
-                                  <div className="px-5 py-2  flex items-center">
-                                    <p className="font-[400]">
-                                      {moment
-                                        .unix(d.registeredOn._seconds)
-                                        .format("MMM DD, YYYY (hh:mm A)")}
-                                    </p>
-                                  </div>
-                                  <div className="px-5 py-2 flex items-center">
-                                    <p className="px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
-                                      EVENT HASN'T STARTED
-                                    </p>
-                                  </div>
-                                  <div className="px-5 py-2 text-right flex items-center gap-2 justify-end">
-                                    <button className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md">
-                                      <Eye size="15px" />
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        printQR({
-                                          eventName: currEvent.name,
-                                          attendeeName: d.name,
-                                          organization: d.orgN,
-                                          position: d.orgP,
-                                          identifier: d.id,
-                                        })
-                                      }
-                                      className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                    >
-                                      <Printer size="15px" />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-
-                  {fetchingAtn && (
-                    <>
-                      <div className="h-[600px]">
-                        <div className="loading h-full w-full grid place-content-center">
-                          <CircularProgress disableShrink />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="hidden w-full max-w-[300px] max-h-[500px] bg-white mt-18 rounded-2xl shadow-sm shadow-neutral-200">
-              <div className="p-5 h-full">
-                <h1 className="text-sm font-[500]">Atendee Information</h1>
-                {fetching && (
-                  <>
-                    {" "}
-                    <div className="loading h-full w-full grid place-content-center">
-                      <CircularProgress disableShrink />
-                    </div>
-                  </>
-                )}
-                {!fetching && (
-                  <div className="activities mt-2">
-                    <div className="activity flex gap-5 items-center bg-white border-1 border-neutral-100 shadow-sm shadow-neutral-50 px-4 py-3 rounded-xl">
-                      <div className="icon rounded-full p-3 border-1 border-neutral-200 bg-emerald-600 w-max text-emerald-100">
-                        <Plus size="15px" strokeWidth="4px" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-[500]">Registration</p>
-                        <p className="text-xs">
-                          Charl Concepcion has registered on event "VINCEOLEO
-                          Philippines"
-                        </p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )}
+              </div>
+              <Avatar />
+            </div>
+          </div>
+        </nav>
+        <section className="flex" style={{ height: "calc(100vh - 60px)" }}>
+          <aside className="w-[264px] bg-neutral-50 h-full flex flex-col justify-between py-5">
+            <ul className="flex flex-col gap-2 px-3 ">
+              <li
+                onClick={() => router.push("/dashboard")}
+                className="mt-2 py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
+              >
+                <ArrowLeft size="18px" />
+                Go To Dashboard
+              </li>
+              <li
+                onClick={() => {
+                  modal.info(
+                    "Unavailable",
+                    "This feature is still in development, please wait for the next version of Eventra.",
+                    () => {},
+                    () => {},
+                    "Okay",
+                    "",
+                    <AlertTriangle />,
+                    "initial"
+                  );
+                }}
+                className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
+              >
+                <Pencil size="18px" />
+                Edit Event
+              </li>
+
+              <li
+                onClick={() => setQrScanner(true)}
+                className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
+              >
+                <QrCode size="18px" />
+                Scan E-Mail QR
+              </li>
+            </ul>
+
+            <ul className="flex flex-col gap-2 pt-5 border-t-2 border-neutral-200 px-3 ">
+              <li
+                onClick={() => {
+                  modal.info(
+                    "Unavailable",
+                    "This feature is still in development, please wait for the next version of Eventra.",
+                    () => {},
+                    () => {},
+                    "Okay",
+                    "",
+                    <AlertTriangle />,
+                    "initial"
+                  );
+                }}
+                className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
+              >
+                <Trash size="18px" />
+                Delete Event
+              </li>
+            </ul>
+          </aside>
+          <div
+            className="h-full bg-neutral-100 flex justify-center pt-5 px-5 overflow-y-scroll"
+            style={{ width: "calc(100vw - 264px)" }}
+          >
+            <div className="h-full w-full">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-5 relative h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md geist overflow-hidden">
+                  {!fetching.mainEvent && (
+                    <>
+                      <div className="relative z-[2]">
+                        {currEvent.status === "Upcoming" ? (
+                          <div className="text-white flex items-center gap-3 text-xs">
+                            <div className="circle h-[12px] w-[12px] rounded-full bg-yellow-600"></div>
+                            {currEvent.status}
+                          </div>
+                        ) : currEvent.status === "Ongoing" ? (
+                          <div className="text-white flex items-center gap-3 text-xs">
+                            <div className="circle h-[12px] w-[12px] rounded-full bg-emerald-600"></div>
+                            {currEvent.status}
+                          </div>
+                        ) : (
+                          <div className="text-white flex items-center gap-3 text-xs">
+                            <div className="circle h-[12px] w-[12px] rounded-full bg-red-600"></div>
+                            {currEvent.status}
+                          </div>
+                        )}
+                        <h1 className="text-2xl text-white font-[500] mt-1">
+                          {currEvent?.name}
+                        </h1>
+                        <p className="text-neutral-100 text-sm">
+                          {moment
+                            .unix(currEvent.date)
+                            .utcOffset(currEvent.offsetT)
+                            .format("dddd, MMM DD, YYYY")}{" "}
+                          - {currEvent?.location}
+                        </p>
+                        <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
+                          <Users size="15px" /> Capacity: {currEvent.atendeeLim}{" "}
+                          atendees
+                        </p>
+                        {currEvent.allowWalkIn && (
+                          <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
+                            <CircleCheck size="15px" /> Walk-in is allowed.
+                          </p>
+                        )}
+
+                        {!currEvent.allowWalkIn && (
+                          <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
+                            <CircleX size="15px" /> Walk-in is not allowed.
+                          </p>
+                        )}
+                      </div>
+                      <div className="absolute top-0 right-0 w-full h-full z-[1]">
+                        <img
+                          src={currEvent?.coverFile}
+                          alt=""
+                          className="h-full w-full object-cover brightness-30"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {fetching.mainEvent && (
+                    <div className="grid place-content-center h-full w-full">
+                      <div className="flex items-center gap-2">
+                        <CircularProgress
+                          size={40}
+                          thickness={3}
+                          disableShrink
+                          sx={{
+                            color: "black", // spinner stroke
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+                  <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
+                    <Users size="15px" strokeWidth={2} />
+                    Registrations Per Day
+                  </h1>
+                  {!fetching.lineAnalytics && (
+                    <div className="relative flex-1">
+                      <Line options={options} data={rpdOrd} />
+                    </div>
+                  )}
+                  {fetching.lineAnalytics && (
+                    <div className="grid place-content-center h-full w-full">
+                      <div className="flex items-center gap-2">
+                        <CircularProgress
+                          size={40}
+                          thickness={3}
+                          disableShrink
+                          sx={{
+                            color: "black", // spinner stroke
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+                  <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
+                    <Users size="15px" strokeWidth={2} />
+                    In Event / Not In Event
+                  </h1>
+                  <div className="flex-1 relative">
+                    {!fetching.pieAnalytics && (
+                      <Pie
+                        data={pieData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: { legend: { display: false } },
+                        }}
+                      />
+                    )}
+                    {fetching.pieAnalytics && (
+                      <div className="grid place-content-center h-full w-full">
+                        <div className="flex items-center gap-2">
+                          <CircularProgress
+                            size={40}
+                            thickness={3}
+                            disableShrink
+                            sx={{
+                              color: "black", // spinner stroke
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
+                  <div>
+                    {!fetching.atendees && (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <h1 className=" font-[500] text-sm">Atendees</h1>
+                          <div className="flex gap-2 items-center">
+                            <div className="search flex relative items-center">
+                              <Search
+                                size="15px"
+                                className="absolute right-[10px] top-1/2 translate-y-[-50%]"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Find an atendee..."
+                                onInput={(d) => {
+                                  setSearch(
+                                    (d.target as HTMLInputElement).value
+                                  );
+                                }}
+                                value={search}
+                                className="text-xs w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
+                              />
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => refetchAtendees()}
+                                className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-5 py-1.5 text-black flex items-center gap-2 rounded-md"
+                              >
+                                <RefreshCcwDot size="15px" /> Refresh{" "}
+                              </button>
+                            </div>
+
+                            <div>
+                              <button
+                                onClick={() => {
+                                  modal.info(
+                                    "Unavailable",
+                                    "This feature is still in development, please wait for the next version of Eventra.",
+                                    () => {},
+                                    () => {},
+                                    "Okay",
+                                    "",
+                                    <AlertTriangle />,
+                                    "initial"
+                                  );
+                                }}
+                                className="text-xs bg-black hover:bg-neutral-800 px-5 py-1.5 text-white flex items-center gap-2 rounded-md"
+                              >
+                                <Download size="15px" /> Export Data
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        {filtered.length === 0 && (
+                          <p className="text-center mt-10">No atendees.</p>
+                        )}
+
+                        {filtered.length !== 0 && (
+                          <>
+                            <div className="atendee-table mt-5 rounded-lg overflow-hidden border-1 border-neutral-200 max-h-[500px] overflow-y-scroll">
+                              <div className="relative overflow-x-scroll w-full">
+                                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] bg-white font-[500] geist text-xs">
+                                  <div className="contents">
+                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                      Attendee
+                                    </div>
+                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                      Organization
+                                    </div>
+                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                      Phone Number
+                                    </div>
+                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                      Salutation
+                                    </div>
+                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                      Address
+                                    </div>
+                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                      Registered On
+                                    </div>
+                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                      In Event?
+                                    </div>
+                                    <div className="p-3  font-[500] bg-neutral-100 whitespace-nowrap sticky right-0 z-10">
+                                      Options
+                                    </div>
+                                  </div>
+
+                                  {filtered.map((d, i) => {
+                                    return (
+                                      <div
+                                        key={i}
+                                        className="contents border-b-1 border-neutral-200 font-[500] geist text-xs"
+                                      >
+                                        <div className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
+                                          <p className="truncate">{d.name}</p>
+                                          <p className="font-[400] text-neutral-800 truncate">
+                                            {d.email}
+                                          </p>
+                                        </div>
+                                        <div className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
+                                          <p>{d.orgN}</p>
+                                          <p className="font-[400] text-neutral-800 flex items-center gap-1 truncate">
+                                            <Briefcase
+                                              size="12px"
+                                              className="shrink-0"
+                                            />
+                                            {d.orgP}
+                                          </p>
+                                        </div>
+                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
+                                          <p className="font-[400] flex gap-1 items-center truncate">
+                                            <Phone
+                                              size="12px"
+                                              className="shrink-0"
+                                            />
+                                            {d.phoneNumber}
+                                          </p>
+                                        </div>
+                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
+                                          <p className="font-[400] flex gap-1 items-center truncate">
+                                            <User
+                                              size="12px"
+                                              className="shrink-0"
+                                            />
+                                            {d.salutations}
+                                          </p>
+                                        </div>
+                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
+                                          <p className="font-[400] flex gap-1 items-center truncate">
+                                            <HomeIcon
+                                              size="12px"
+                                              className="shrink-0"
+                                            />
+                                            {d.addr || "N/A"}
+                                          </p>
+                                        </div>
+                                        <div className="px-5 py-2  flex items-center whitespace-nowrap">
+                                          <p className="font-[400]">
+                                            {moment
+                                              .unix(d.registeredOn._seconds)
+                                              .format("MMM DD, YYYY (hh:mm A)")}
+                                          </p>
+                                        </div>
+                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
+                                          {d.attended && (
+                                            <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
+                                              IN EVENT
+                                            </p>
+                                          )}
+                                          {!d.attended && (
+                                            <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
+                                              NOT IN EVENT
+                                            </p>
+                                          )}
+                                        </div>
+
+                                        <div className="bg-white px-5 py-2 text-right flex items-center gap-2 justify-end sticky z-[10] right-0">
+                                          <button
+                                            onClick={() => {
+                                              setEditAtendee({
+                                                active: true,
+                                                attended: {
+                                                  err: "",
+                                                  value: d.attended
+                                                    ? "true"
+                                                    : "false",
+                                                },
+                                                name: {
+                                                  err: "",
+                                                  value: d.name,
+                                                },
+                                                orgN: {
+                                                  err: "",
+                                                  value: d.orgN,
+                                                },
+                                                orgP: {
+                                                  err: "",
+                                                  value: d.orgP,
+                                                },
+                                                email: {
+                                                  err: "",
+                                                  value: d.email,
+                                                },
+                                                number: {
+                                                  err: "",
+                                                  value: d.phoneNumber,
+                                                },
+                                                addr: {
+                                                  err: "",
+                                                  value: d.addr,
+                                                },
+                                                salutation: {
+                                                  err: "",
+                                                  value: d.salutations,
+                                                },
+
+                                                id: d.id,
+                                              });
+                                            }}
+                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                          >
+                                            <Pencil size="15px" />
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setViewAtendee({
+                                                active: true,
+                                                attended: d.attended,
+                                                name: d.name,
+                                                orgN: d.orgN,
+                                                orgP: d.orgP,
+                                                email: d.email,
+                                                number: d.phoneNumber,
+                                                addr: d.addr,
+                                                salutation: d.salutations,
+                                                registeredAt:
+                                                  d.registeredOn._seconds,
+                                                id: d.id,
+                                              });
+                                            }}
+                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                          >
+                                            <Eye size="15px" />
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              printQR({
+                                                eventName: currEvent.name,
+                                                attendeeName: d.name,
+                                                organization: d.orgN,
+                                                position: d.orgP,
+                                                identifier: d.id,
+                                              })
+                                            }
+                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                          >
+                                            <Printer size="15px" />
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              handleDeleteAtendee(
+                                                d.id,
+                                                d.name,
+                                                d.public_id_qr
+                                              );
+                                            }}
+                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                          >
+                                            <Trash size="15px" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {fetching.atendees && (
+                      <>
+                        <div className="h-[600px]">
+                          <div className="loading h-full w-full grid place-content-center">
+                            <CircularProgress
+                              size={40}
+                              thickness={3}
+                              disableShrink
+                              sx={{
+                                color: "black", // spinner stroke
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import appReducer from "./appSlice";
+import modalReducer from "./modalStore";
 
 export const store = configureStore({
   reducer: {
     app: appReducer, // Register profile slice
+    modal: modalReducer,
   },
 });
 

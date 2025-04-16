@@ -26,7 +26,7 @@ export function printQR({
   const root = createRoot(container);
   root.render(
     <QRCodeCanvas
-      value={`http://eventra.ctxtechnologies.com/atendee?=${identifier}`}
+      value={`${process.env.NEXT_PUBLIC_DOMAIN}/atendee?=${identifier}`}
       size={120}
     />
   );

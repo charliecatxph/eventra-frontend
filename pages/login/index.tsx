@@ -2,13 +2,14 @@ import Loading from "@/components/LoadingWithInf";
 import { useModal } from "@/components/Modal/ModalContext";
 import axios, { AxiosError } from "axios";
 import { TriangleAlert } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import jwt from "jsonwebtoken";
 import { useDispatch, useSelector } from "react-redux";
 import { appUpdate, selectApp } from "@/features/appSlice";
 import { AppDispatch } from "@/features/store";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import { useSecureRoute } from "@/hooks/UseSecureRoute";
 
 interface LoginForm {
   email: string;
@@ -16,21 +17,32 @@ interface LoginForm {
 }
 
 export default function Login() {
+  const [render, setRender] = useState<boolean>(false);
   const router = useRouter();
   const appData = useSelector(selectApp);
-
-  const dispatch = useDispatch<AppDispatch>();
-
-  const [loginData, setLoginData] = useState<LoginForm>({
-    email: "",
-    pw: "",
-  });
 
   const [regStat, setRegStat] = useState<any>({
     active: false,
     success: false,
     fail: false,
     failMsg: "",
+  });
+
+  useSecureRoute(
+    () => {
+      if (regStat.active) return;
+      router.push("/dashboard");
+    },
+    () => {
+      setRender(true);
+    }
+  );
+
+  const dispatch = useDispatch<AppDispatch>();
+
+  const [loginData, setLoginData] = useState<LoginForm>({
+    email: "",
+    pw: "",
   });
 
   const handleSubmit = async () => {
@@ -95,6 +107,8 @@ export default function Login() {
       }));
     }
   };
+
+  if (!render) return <></>;
   return (
     <>
       <Head>

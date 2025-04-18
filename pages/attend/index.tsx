@@ -492,8 +492,8 @@ export default function AttendEv() {
                     Register MPOF 2025
                   </button>
                   <a
-                    href="https://drive.google.com/file/d/1PVxY56IvWsaVnY0AJI7WD0UC-itmKrwp/view?usp=sharing"
-                    target="_blank"
+                    href="https://mpof2025.vinceoleo.com/assets/MPOF25-Philippines_USD.pdf"
+                    download
                   >
                     <button className="text-xs  lg:text-sm bg-neutral-50 border-1 border-neutral-500 hover:bg-neutral-100 text-neutral-900 rounded-full px-5 py-1.5 mt-3  font-[600] flex gap-2 items-center">
                       <Download size="15px" strokeWidth={3} />

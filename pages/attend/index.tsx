@@ -489,7 +489,7 @@ export default function AttendEv() {
                     className="text-base lg:text-lg bg-[#F26522] hover:bg-orange-500 rounded-full px-5 py-1.5 mt-5 text-white font-[600] flex gap-2 items-center"
                   >
                     <ArrowUpRight size="18px" strokeWidth={3} />
-                    Register to MPOF2025
+                    Register MPOF 2025
                   </button>
                   <a
                     href="https://drive.google.com/file/d/1PVxY56IvWsaVnY0AJI7WD0UC-itmKrwp/view?usp=sharing"

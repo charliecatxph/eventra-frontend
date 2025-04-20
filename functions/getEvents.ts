@@ -1,37 +1,6 @@
 import axios from "axios";
 import moment from "moment";
-
-interface OrdinaryEvent {
-  status: string;
-  allowWalkIn: boolean;
-  atendeeLim: number;
-  date: number;
-  startT: number;
-  endT: number;
-  location: string;
-  organizationId: string;
-  name: string;
-  sec_url: string;
-  offset: number;
-  type: string;
-  id: string;
-  atnSz: number;
-}
-
-interface BizMatchEvent {
-  status: string;
-  name: string;
-  date: number;
-  startT: number;
-  endT: number;
-  organizationId: string;
-  lim: string;
-  offset: number;
-  timeslotsCount: number;
-  suppliersCount: number;
-  type: string;
-  id: string;
-}
+import { OrdinaryEvent, BizMatchEvent } from "@/interfaces/Interface";
 
 interface GetEventsResponse {
   data: {
@@ -75,44 +44,24 @@ export const getEvents = (
             : "Past";
 
         tmp.push({
+          ...ordinaryEvent,
           status: status,
-          allowWalkIn: ordinaryEvent.allowWalkIn,
-          atendeeLim: ordinaryEvent.atendeeLim,
-          date: ordinaryEvent.date,
-          startT: ordinaryEvent.startT,
-          endT: ordinaryEvent.endT,
-          location: ordinaryEvent.location,
-          organizationId: ordinaryEvent.organizationId,
-          name: ordinaryEvent.name,
-          sec_url: ordinaryEvent.coverFile,
-          offset: ordinaryEvent.offset * -1,
-          type: "Ordinary Event",
-          id: ordinaryEvent.id,
-          atnSz: ordinaryEvent.atnSz,
+          type: "Ordinary",
         });
       });
       acs.bz.forEach((bizmatchEvent: any) => {
         const status =
-          moment().unix() < bizmatchEvent.startT._seconds
+          moment().unix() < bizmatchEvent.startT
             ? "Upcoming"
-            : moment().unix() >= bizmatchEvent.startT._seconds &&
-              moment().unix() <= bizmatchEvent.endT._seconds
+            : moment().unix() >= bizmatchEvent.startT &&
+              moment().unix() <= bizmatchEvent.endT
             ? "Ongoing"
             : "Past";
 
         tmp2.push({
+          ...bizmatchEvent,
           status: status,
-          name: bizmatchEvent.name,
-          date: bizmatchEvent.date._seconds * 1000,
-          startT: bizmatchEvent.startT._seconds,
-          endT: bizmatchEvent.endT._seconds,
-          organizationId: bizmatchEvent.organizationId,
-          lim: bizmatchEvent.lim,
-          offset: bizmatchEvent.offset * -1,
-          timeslotsCount: bizmatchEvent.timeslotsCount,
-          suppliersCount: bizmatchEvent.suppliersCount,
-          type: "BizMatch Event",
-          id: bizmatchEvent.id,
+          type: "BizMatch",
         });
       });
 

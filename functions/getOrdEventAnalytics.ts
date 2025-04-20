@@ -1,17 +1,14 @@
 import axios from "axios";
-
-interface LineChartStruct {
+interface LineChartData {
   labels: string[];
   datasets: [
     {
       label: string;
       data: number[];
       borderColor: string;
-
       tension: number;
-
-      pointRadius: number; // Visible point
-      pointHoverRadius: number; // Enlarges on hover
+      pointRadius: number;
+      pointHoverRadius: number;
       pointBackgroundColor: string;
       pointHoverBackgroundColor: string;
       pointBorderColor: string;
@@ -21,7 +18,7 @@ interface LineChartStruct {
 }
 
 interface GetOrdEventAnalyticsResponse {
-  data: LineChartStruct | {};
+  data: LineChartData;
   err?: string;
 }
 
@@ -56,7 +53,7 @@ export const getOrdEventAnalytics = (
 
       const acs = req.data.data;
 
-      let tmpx: LineChartStruct = {
+      let tmpx: LineChartData = {
         labels: [],
         datasets: [
           {

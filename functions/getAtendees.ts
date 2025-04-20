@@ -19,16 +19,25 @@ interface FetchAtendeesResponse {
   err?: string;
 }
 
+interface FetchAtendeeResponseSizeOnly {
+  data: {
+    in: number;
+    out: number;
+  };
+  err?: string;
+}
+
 export const fetchAtendees = (
+  mode: string,
   evId: string,
   acsTok: string
-): Promise<FetchAtendeesResponse> => {
+): Promise<FetchAtendeesResponse | FetchAtendeeResponseSizeOnly> => {
   return new Promise(async (resolve, reject) => {
     try {
       const rq2 = await axios
         .post(
-          `${process.env.NEXT_PUBLIC_API}/get-atendees?mode=all`,
-          { evId: evId },
+          `${process.env.NEXT_PUBLIC_API}/get-atendees`,
+          { evId: evId, mode: mode },
           {
             withCredentials: true,
             headers: { Authorization: `Bearer ${acsTok}` },
@@ -40,21 +49,21 @@ export const fetchAtendees = (
 
       const at = rq2.data.data;
 
-      // // set pie data from vars
-      // setPieData((pv) => ({
-      //   ...pv,
-      //   datasets: [
-      //     {
-      //       ...pv.datasets[0],
-      //       data: [not_in_event, in_event],
-      //     },
-      //   ],
-      // }));
-
+      if (mode === "count") {
+        resolve({
+          data: at,
+        });
+      }
       resolve({
         data: [...at],
       });
     } catch (e: any) {
+      if (mode === "count") {
+        reject({
+          data: 0,
+          err: e.message,
+        });
+      }
       reject({
         data: [],
         err: e.message,

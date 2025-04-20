@@ -271,7 +271,7 @@ export default function Register() {
           ln: registerData.ln.value,
           email: registerData.email.value,
           pw: registerData.pw.value,
-          org_name: organizationData.name.value,
+          orgN: organizationData.name.value,
           country: organizationData.country.value,
           website: organizationData.website.value,
         });

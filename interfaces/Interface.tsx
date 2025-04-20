@@ -1,42 +1,52 @@
-export interface EvDAT {
-  name: string;
-  location: string;
-  date: string;
-  start: string;
-  end: string;
+export interface OrdinaryEvent {
+  id: string;
+  orgId: string;
   allowWalkIn: boolean;
-  limitAtendee: boolean;
-  atendeeLim: number;
-  coverFile: File | null;
-  idLayout: number;
-}
-
-export interface EvDATErr {
-  name: string;
-  location: string;
-  date: string;
-  start: string;
-  end: string;
-  allowWalkIn: string;
-  limitAtendee: string;
-  atendeeLim: string;
+  attendeeLim: number;
   coverFile: string;
-  idLayout: string;
+  coverFilePubId: string;
+  date: number;
+  description: string;
+  endT: number;
+  location: string;
+  name: string;
+  offset: number;
+  organizedBy: string;
+  startT: number;
+  upl_on: number;
+  type: string;
+  status: string;
+  atnSz?: number;
 }
 
-export interface InputBoxInterface {
-  identifier: string;
-  displayName: string;
-  inputType: string;
-  value: any;
-  setData: React.Dispatch<React.SetStateAction<EvDAT>>;
-  setError: React.Dispatch<React.SetStateAction<EvDATErr>>;
-  error: string;
-  onInputEventType: string;
-  className?: string;
-  extraErrFlag?: string;
+export interface BizMatchEvent {
+  id: string;
+  date: number;
+  endT: number;
+  lim: number;
+  name: string;
+  offset: number;
+  orgId: string;
+  startT: number;
+  suppliersCount: number;
+  timeslotsCount: number;
+  upl_on: number;
+  type: string;
+  status: string;
 }
 
-export interface Cb {
-  onExit(): void;
+export interface Atendee {
+  id: string;
+  addr: string;
+  attended: boolean;
+  email: string;
+  evId: string;
+  name: string;
+  orgN: string;
+  orgP: string;
+  phoneNumber: string;
+  public_id_qr: string;
+  qrId_secUrl: string;
+  registeredOn: number;
+  salutations: string;
 }

@@ -237,7 +237,7 @@ export default function OrdinaryEvent() {
           organizedBy: information.organizedBy.value.trim(),
           description: information.description.value.trim(),
           offset: time.offset.value,
-          date: moment(time.date.value).unix(),
+          date: Math.floor(new Date(time.date.value).setHours(0, 0, 0, 0)),
           startT: getUnix(time.date.value, time.startT.value),
           endT: getUnix(time.date.value, time.endT.value),
           tsStartT: getUnix(time.date.value, timesheets.startT.value),

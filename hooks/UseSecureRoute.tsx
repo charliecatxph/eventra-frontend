@@ -38,6 +38,7 @@ export function useSecureRoute(
           id: decoded.id,
         })
       );
+
       callback();
     } catch (e) {
       router.push("/login");
@@ -59,5 +60,5 @@ export function useSecureRoute(
     } else {
       callback();
     }
-  }, [callback]);
+  }, []);
 }

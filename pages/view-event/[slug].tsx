@@ -61,6 +61,16 @@ import {
 import QRCode from "@/components/QRCode";
 import TextInput from "@/components/Inputs/TextInput";
 import Avatar from "@/components/Nav/Avatar";
+import OrdEvRegLineAnalytics from "@/components/Bento/OrdEvRegLineAnalytics";
+import { getOrdEventAnalytics } from "@/functions/getOrdEventAnalytics";
+import { fetchAtendees } from "@/functions/getAtendees";
+import OrdEvRegPieAnalytics from "@/components/Bento/OrdEvRegPieAnalytics";
+import Notifications from "@/components/Nav/Notifications";
+import HighlightedOrdinaryEvent from "@/components/Bento/HighlightedOrdinaryEvent";
+import { getOrdinaryEventInformation } from "@/functions/getOrdinaryEventInformation";
+
+import { Atendee, OrdinaryEvent } from "@/interfaces/Interface";
+import OrdEvAttendees from "@/components/Bento/OrdEvAttendees";
 
 ChartJS.register(
   CategoryScale,
@@ -74,109 +84,64 @@ ChartJS.register(
   ArcElement
 );
 
-interface OrdinaryEVViewer {
-  name: string;
-  location: string;
-  startT: number; // changed to number
-  endT: number; // changed to number
-  date: number; // changed to number
-  offsetT: number;
-  allowWalkIn: boolean;
-  atendeeLim: number;
-  organizationId: string;
-  coverFile: string;
-  status: string;
-  organizedBy: string;
-  description: string;
+interface PieChartData {
+  labels: string[];
+  datasets: [
+    {
+      label: string;
+      data: number[];
+      backgroundColor: string[];
+      borderColor: string[];
+      borderWidth: number;
+    }
+  ];
 }
 
-export const options = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false,
-    },
-  },
-  scales: {
-    x: {
-      grid: {
-        display: false,
-      },
-    },
-  },
-};
+interface LineChartData {
+  labels: string[];
+  datasets: [
+    {
+      label: string;
+      data: number[];
+      borderColor: string;
+      tension: number;
+      pointRadius: number;
+      pointHoverRadius: number;
+      pointBackgroundColor: string;
+      pointHoverBackgroundColor: string;
+      pointBorderColor: string;
+      pointHoverBorderColor: string;
+    }
+  ];
+}
 
-const setEditAtendeeDef = {
-  active: false,
-  attended: {
-    value: "",
-    err: "",
-  },
-  name: {
-    value: "",
-    err: "",
-  },
-  orgN: {
-    value: "",
-    err: "",
-  },
-  orgP: {
-    value: "",
-    err: "",
-  },
-  email: {
-    value: "",
-    err: "",
-  },
-  number: {
-    value: "",
-    err: "",
-  },
-  addr: {
-    value: "",
-    err: "",
-  },
-  salutation: {
-    value: "",
-    err: "",
-  },
-  id: "",
-};
+interface FetchingData {
+  mainEvent: boolean;
+  lineAnalytics: boolean;
+  pieAnalytics: boolean;
+  atendees: boolean;
+  notifications: boolean;
+}
 
 export default function ViewEvent() {
   const modal = useModal();
-  const [isDeletingEvent, setIsDeletingEvent] = useState<boolean>(false);
-  const [fetching, setFetching] = useState<any>({
+
+  const [fetching, setFetching] = useState<FetchingData>({
     mainEvent: false,
     lineAnalytics: false,
     pieAnalytics: false,
     atendees: false,
     notifications: false,
   });
+
   const [render, setRender] = useState<boolean>(false);
-  const usecure = useSecureRoute(() => {
+  useSecureRoute(() => {
     setRender(true);
   });
-  const appData = useSelector(selectApp);
-  const dispatch = useDispatch<AppDispatch>();
-  const [currEvent, setCurrEvent] = useState<OrdinaryEVViewer>({
-    name: "",
-    location: "",
-    startT: 0, // changed to number
-    endT: 0, // changed to number
-    date: 0, // changed to number
-    offsetT: 0,
-    allowWalkIn: false,
-    atendeeLim: 0,
-    organizationId: "",
-    coverFile: "",
-    description: "",
-    organizedBy: "",
-    status: "",
-  });
 
-  const [rpdOrd, setRpdOrd] = useState<any>({
+  const appData = useSelector(selectApp);
+
+  const [rpdOrd, setRpdOrd] = useState<LineChartData>({
     labels: [],
     datasets: [
       {
@@ -184,7 +149,7 @@ export default function ViewEvent() {
         data: [],
         borderColor: "oklch(55.8% 0.288 302.321)",
 
-        tension: 0.6,
+        tension: 1,
 
         pointRadius: 4, // Visible point
         pointHoverRadius: 6, // Enlarges on hover
@@ -196,270 +161,44 @@ export default function ViewEvent() {
     ],
   });
 
-  const [pieData, setPieData] = useState<any>({
-    labels: ["Not In Event", "In Event"],
+  const [ioutOrd, setIoutOrd] = useState<PieChartData>({
+    labels: ["Not in Event", "In Event"],
     datasets: [
       {
-        label: "Persons",
+        label: "Atendee",
         data: [],
-        backgroundColor: ["rgba(255, 99, 132, 0.2)", "rgba(54, 162, 235, 0.2)"],
-        borderColor: ["rgba(255, 99, 132, 1)", "rgba(54, 162, 235, 1)"],
+        backgroundColor: ["rgba(231, 76, 60,0.2)", "rgba(52, 152, 219,0.2)"],
+        borderColor: ["rgba(231, 76, 60,1.0)", "rgba(52, 152, 219,1.0)"],
         borderWidth: 1,
       },
     ],
   });
 
-  const [search, setSearch] = useState<string>("");
-  const [filtered, setFiltered] = useState<any[]>([]);
-  const [atendees, setAtendees] = useState<any[]>([]);
-
-  const [openProf, setOpenProf] = useState<boolean>(false);
-  const profilePopupRef = useClickOutside<HTMLDivElement>(() => {
-    setOpenProf(false);
-  });
-
-  const [openNotifications, setOpenNotifications] = useState<boolean>(false);
-  const notificationPopupRef = useClickOutside<HTMLDivElement>(() => {
-    setOpenNotifications(false);
-  });
-
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [qrScanner, setQrScanner] = useState<boolean>(false);
 
-  const [viewAtendee, setViewAtendee] = useState<any>({
-    active: false,
-    attended: false,
-    name: "",
-    orgN: "",
-    orgP: "",
-    email: "",
-    number: "",
-    addr: "",
-    salutation: "",
-    registeredAt: 0,
+  const [currEvent, setCurrEvent] = useState<OrdinaryEvent>({
     id: "",
+    name: "",
+    orgId: "",
+    allowWalkIn: false,
+    attendeeLim: 0,
+    coverFile: "",
+    coverFilePubId: "",
+    date: 0,
+    description: "",
+    endT: 0,
+    location: "",
+    offset: 0,
+    organizedBy: "",
+    startT: 0,
+    upl_on: 0,
+    type: "",
+    status: "",
   });
 
-  const [editAtendee, setEditAtendee] = useState<any>({
-    active: false,
-    attended: {
-      value: "",
-      err: "",
-    },
-    name: {
-      value: "",
-      err: "",
-    },
-    orgN: {
-      value: "",
-      err: "",
-    },
-    orgP: {
-      value: "",
-      err: "",
-    },
-    email: {
-      value: "",
-      err: "",
-    },
-    number: {
-      value: "",
-      err: "",
-    },
-    addr: {
-      value: "",
-      err: "",
-    },
-    salutation: {
-      value: "",
-      err: "",
-    },
-    id: "",
-  });
+  const [attendees, setAttendees] = useState<Atendee[]>([]);
 
   const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      const req = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/logout`,
-        {},
-        { withCredentials: true }
-      );
-      setRender(false);
-      dispatch(resetApp());
-      router.push("/login");
-    } catch (e) {}
-  };
-
-  const fetchEvent = (): Promise<string> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const rq = await axios.post(
-          `${process.env.NEXT_PUBLIC_API}/get-ord-event-data`,
-          { evId: router.query.slug },
-          {
-            withCredentials: true,
-            headers: { Authorization: `Bearer ${appData.acsTok}` },
-          }
-        );
-
-        const ev = rq.data.data;
-
-        const status =
-          moment().unix() < ev.startT._seconds
-            ? "Upcoming"
-            : moment().unix() >= ev.startT._seconds &&
-              moment().unix() <= ev.endT._seconds
-            ? "Ongoing"
-            : "Past";
-
-        setCurrEvent({
-          name: ev.name,
-          location: ev.location,
-          startT: ev.startT._seconds,
-          endT: ev.endT._seconds,
-          date: ev.date._seconds,
-          offsetT: ev.offset * -1,
-          allowWalkIn: ev.allowWalkIn,
-          atendeeLim: parseInt(ev.atendeeLim),
-          organizationId: ev.organizationId,
-          coverFile: ev.coverFile,
-          organizedBy: ev.organizedBy,
-          description: ev.description,
-          status: status,
-        });
-        resolve(`${ev.offset * -1}`);
-      } catch (e) {
-        reject("");
-      }
-    });
-  };
-
-  const fetchAtendees = (): Promise<string> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const rq2 = await axios.post(
-          `${process.env.NEXT_PUBLIC_API}/get-atendees?mode=all`,
-          { evId: router.query.slug },
-          {
-            withCredentials: true,
-            headers: { Authorization: `Bearer ${appData.acsTok}` },
-          }
-        );
-
-        const at = rq2.data.data;
-
-        let not_in_event = 0;
-        let in_event = 0;
-        at.forEach((atendee) => {
-          if (atendee.attended) {
-            in_event += 1;
-          } else {
-            not_in_event += 1;
-          }
-        });
-
-        // set pie data from vars
-        setPieData((pv) => ({
-          ...pv,
-          datasets: [
-            {
-              ...pv.datasets[0],
-              data: [not_in_event, in_event],
-            },
-          ],
-        }));
-
-        setAtendees([...at]);
-        resolve("");
-      } catch (e) {
-        reject("");
-      }
-    });
-  };
-
-  const fetchAnalyticsLine = (offset?: number): Promise<string> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const rq3 = await axios.post(
-          `${process.env.NEXT_PUBLIC_API}/fetch-ord-event-analytics`,
-          {
-            evId: router.query.slug,
-            offset: currEvent.offsetT || offset,
-            type: "rpd",
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${appData.acsTok}`,
-              "Content-Type": "application/json",
-            },
-            withCredentials: true,
-          }
-        );
-
-        const ev_analytics = rq3.data.data;
-
-        setRpdOrd((pv) => ({
-          labels: [],
-          datasets: [
-            {
-              ...pv.datasets[0],
-              data: [],
-            },
-          ],
-        }));
-
-        Object.keys(ev_analytics).forEach((date) => {
-          setRpdOrd((pv) => ({
-            labels: [...pv.labels, date],
-            datasets: [
-              {
-                ...pv.datasets[0],
-                data: [...pv.datasets[0].data, ev_analytics[date]], // ev_analytics[date] captures the value. {"date": v}
-              },
-            ],
-          }));
-        });
-        resolve("");
-      } catch (e) {
-        reject("");
-      }
-    });
-  };
-
-  const fetchNotifications = (): Promise<string> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const rq4 = await axios.post(
-          `${process.env.NEXT_PUBLIC_API}/fetch-notifications`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${appData.acsTok}`,
-            },
-            withCredentials: true,
-          }
-        );
-
-        let tmpnotif = [];
-        const notifs = rq4.data;
-
-        notifs.data.forEach((notification) => {
-          tmpnotif.push({
-            data: notification.data,
-            stamp: notification.stamp._seconds,
-            type: notification.type,
-          });
-        });
-
-        setNotifications([...tmpnotif]);
-        resolve("");
-      } catch (e) {
-        reject("");
-      }
-    });
-  };
 
   const fetchEventData = async () => {
     try {
@@ -470,21 +209,49 @@ export default function ViewEvent() {
         atendees: true,
         notifications: true,
       }));
-      const f1 = await fetchEvent().catch((e) => {
-        throw new Error("Error occured.");
+      const ordinaryEventInformation: OrdinaryEvent =
+        await getOrdinaryEventInformation(
+          router.query.slug as string,
+          appData.acsTok
+        ).catch((e) => {
+          throw new Error(e?.err);
+        });
+
+      setCurrEvent(ordinaryEventInformation);
+
+      const getOrdEventAnalyticsReq = await getOrdEventAnalytics(
+        process.env.NEXT_PUBLIC_API || "",
+        appData.acsTok,
+        ordinaryEventInformation.id,
+        ordinaryEventInformation.offset,
+        "rpd"
+      ).catch((e) => {
+        throw new Error(e?.err);
+      });
+      setRpdOrd(getOrdEventAnalyticsReq.data);
+
+      const getOrdRegistrationCount = await fetchAtendees(
+        "all",
+        ordinaryEventInformation.id,
+        appData.acsTok
+      ).catch((e) => {
+        throw new Error(e?.err);
       });
 
-      await fetchAtendees().catch((e) => {
-        throw new Error("Error occured.");
-      });
+      setIoutOrd((pv) => ({
+        ...pv,
+        datasets: [
+          {
+            ...pv.datasets[0],
+            data: [
+              getOrdRegistrationCount.data[0].stats.out,
+              getOrdRegistrationCount.data[0].stats.in,
+            ],
+          },
+        ],
+      }));
 
-      await fetchAnalyticsLine(parseInt(f1)).catch((e) => {
-        throw new Error("Error occured.");
-      });
-
-      await fetchNotifications().catch((e) => {
-        throw new Error("Error occured.");
-      });
+      setAttendees([...getOrdRegistrationCount.data[0].attendees]);
 
       setTimeout(() => {
         setFetching((pv) => ({
@@ -511,13 +278,39 @@ export default function ViewEvent() {
     }));
 
     try {
-      await fetchAtendees().catch((e) => {
-        throw new Error("Error occured.");
+      const getOrdEventAnalyticsReq = await getOrdEventAnalytics(
+        process.env.NEXT_PUBLIC_API || "",
+        appData.acsTok,
+        currEvent.id,
+        currEvent.offset,
+        "rpd"
+      ).catch((e) => {
+        throw new Error(e?.err);
+      });
+      setRpdOrd(getOrdEventAnalyticsReq.data);
+
+      const getOrdRegistrationCount = await fetchAtendees(
+        "all",
+        currEvent.id,
+        appData.acsTok
+      ).catch((e) => {
+        throw new Error(e?.err);
       });
 
-      await fetchAnalyticsLine(currEvent.offsetT).catch((e) => {
-        throw new Error("Error occured.");
-      });
+      setIoutOrd((pv) => ({
+        ...pv,
+        datasets: [
+          {
+            ...pv.datasets[0],
+            data: [
+              getOrdRegistrationCount.data[0].stats.out,
+              getOrdRegistrationCount.data[0].stats.in,
+            ],
+          },
+        ],
+      }));
+
+      setAttendees([...getOrdRegistrationCount.data[0].attendees]);
 
       setFetching((pv) => ({
         ...pv,
@@ -530,363 +323,10 @@ export default function ViewEvent() {
     }
   };
 
-  const reqEvDeletion = async () => {
-    try {
-      setIsDeletingEvent(true);
-      const rz = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/delete-event-ord`,
-        { evId: router.query.slug },
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${appData.acsTok}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      setIsDeletingEvent(false);
-      modal.show({
-        icon: <Check />,
-        title: "Deleted",
-        content: "Event was deleted.",
-        confirmText: "Go to Dashboard",
-        onConfirm: () => {
-          router.push("/dashboard");
-          modal.hide();
-        },
-
-        color: "emerald",
-      });
-    } catch (e) {
-      setIsDeletingEvent(false);
-      if (e.message === "Network Error") {
-        modal.show({
-          icon: <X />,
-          title: "Network Error",
-          content: "Please check if you are connected to the internet.",
-          confirmText: "Try Again",
-          cancelText: "Exit",
-          onConfirm: () => {
-            reqEvDeletion();
-            modal.hide();
-          },
-          onCancel: () => {
-            modal.hide();
-          },
-
-          color: "red",
-        });
-      } else {
-        modal.show({
-          icon: <X />,
-          title: "Fail",
-          content: `Fail to delete this event. [${e.response.data.err || ""}]`,
-          confirmText: "Try Again",
-          cancelText: "Go Back",
-          onConfirm: () => {
-            reqEvDeletion();
-            modal.hide();
-          },
-          onCancel: () => {
-            modal.hide();
-          },
-
-          color: "red",
-        });
-      }
-    }
-  };
-
-  const handleEvDelete = () => {
-    modal.show({
-      icon: <FileQuestion />,
-      title: "Confirm Deletion",
-      content:
-        "Deleting an event is irreversible, its atendees will be deleted too, and it will not show up anymore in the atendee registration page.",
-      confirmText: "Delete",
-      cancelText: "Go Back",
-      onConfirm: () => {
-        reqEvDeletion();
-        modal.hide();
-      },
-      onCancel: () => {
-        modal.hide();
-      },
-
-      color: "red",
-    });
-  };
-
-  const deleteAtendee = (id: string, qrId: string): Promise<any> => {
-    const cacheId = id;
-    const cacheQrId = qrId;
-    return new Promise(async (resolve, reject) => {
-      try {
-        const x = await axios
-          .post(
-            `${process.env.NEXT_PUBLIC_API}/delete-atendee`,
-            { id: cacheId, qrId: cacheQrId },
-            {
-              withCredentials: true,
-              headers: { Authorization: `Bearer ${appData.acsTok}` },
-            }
-          )
-          .catch((e) => {
-            throw new Error("Error in deleting atendee.");
-          });
-        resolve("Atendee has been deleted.");
-      } catch (e) {
-        reject(e.message);
-      }
-    });
-  };
-
-  const handleDeleteAtendee = (id: string, name: string, qrId: string) => {
-    modal.promise(
-      <FileQuestion />,
-      "Atendee Deletion",
-      `Confirm delete ${name}? ${name}'s Eventra Passport will be invalid, and data can't be recovered.`,
-      () => {},
-      () => {},
-      "Delete",
-      "Cancel",
-      () => deleteAtendee(id, qrId),
-      "Deleting atendee...",
-      <Check />,
-      "Delete complete",
-      "Your atendee has been deleted.",
-      () => {
-        refetchAtendees();
-      },
-      () => {},
-      "Proceed",
-      "",
-      <X />,
-      "Fail",
-      "We have failed to delete your atendee.",
-      () => {},
-      () => {},
-      "Try again",
-      "Exit"
-    );
-  };
-
-  const updateEditedAtendee = async () => {
-    let err = false;
-    Object.keys(editAtendee).forEach((key) => {
-      if (key === "active" || key === "id" || key === "addr") return;
-      if (
-        key === "email" &&
-        !editAtendee.email.value.match(
-          /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/
-        )
-      ) {
-        setEditAtendee((pv) => ({
-          ...pv,
-          email: {
-            ...pv.email,
-            err: "Invalid email.",
-          },
-        }));
-        err = true;
-      }
-      if (!editAtendee[key].value) {
-        setEditAtendee((pv) => ({
-          ...pv,
-          [key]: {
-            ...pv[key],
-            err: "This field is required.",
-          },
-        }));
-        err = true;
-      }
-    });
-
-    if (err) return;
-
-    setEditAtendee((pv) => ({
-      ...pv,
-      active: false,
-    }));
-
-    const req = () => {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const rx = await axios
-            .post(
-              `${process.env.NEXT_PUBLIC_API}/update-atendee-org`,
-              {
-                id: editAtendee.id,
-                data: {
-                  addr: editAtendee.addr.value,
-                  attended:
-                    editAtendee.attended.value === "true" ? true : false,
-                  email: editAtendee.email.value,
-                  name: editAtendee.name.value,
-                  orgN: editAtendee.orgN.value,
-                  orgP: editAtendee.orgP.value,
-                  phoneNumber: editAtendee.number.value,
-                  salutations: editAtendee.salutation.value,
-                },
-              },
-              {
-                withCredentials: true,
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${appData.acsTok}`,
-                },
-              }
-            )
-            .catch((e) => {
-              throw new Error(e.response.data.err);
-            });
-          resolve("");
-        } catch (e) {
-          reject("");
-        }
-      });
-    };
-
-    modal.promise(
-      <FileQuestion />,
-      "Confirm Atendee Update",
-      `Update this atendee? Previous data won't be saved.`,
-      () => {},
-      () => {},
-      "Update",
-      "Cancel",
-      () => req(),
-      "Updating atendee...",
-      <Check />,
-      "Update complete",
-      "Your atendee has been updated.",
-      () => {
-        setEditAtendee(setEditAtendeeDef);
-        refetchAtendees();
-      },
-      () => {
-        setEditAtendee(setEditAtendeeDef);
-      },
-      "Proceed",
-      "",
-      <X />,
-      "Fail",
-      "We have failed to update your atendee.",
-      () => {
-        updateEditedAtendee();
-      },
-      () => {
-        setEditAtendee(setEditAtendeeDef);
-      },
-      "Try again",
-      "Exit"
-    );
-  };
-
-  const resendEmail = (id: string) => {
-    const req = () => {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const rx = await axios
-            .post(
-              `${process.env.NEXT_PUBLIC_API}/resend-email-ord`,
-              {
-                id: id,
-              },
-              {
-                withCredentials: true,
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${appData.acsTok}`,
-                },
-              }
-            )
-            .catch((e) => {
-              throw new Error(e.response.data.err);
-            });
-
-          resolve("");
-        } catch (e) {
-          reject("");
-        }
-      });
-    };
-    modal.close();
-    modal.promise(
-      <Mail />,
-      "Resend Email?",
-      `Confirm to resend e-mail confirmation?`,
-      () => {},
-      () => {},
-      "Send E-Mail",
-      "Cancel",
-      () => req(),
-      "Resending E-Mail confirmation...",
-      <Check />,
-      "Confirmation E-Mail sent",
-      "Your atendee has been sent a confirmation e-mail.",
-      () => {
-        setViewAtendee({
-          active: false,
-          attended: false,
-          name: "",
-          orgN: "",
-          orgP: "",
-          email: "",
-          number: "",
-          addr: "",
-          salutation: "",
-          registeredAt: 0,
-          id: "",
-        });
-      },
-      () => {},
-      "Proceed",
-      "",
-      <X />,
-      "Fail",
-      "We have failed to send your atendee a confirmation e-mail.",
-      () => {
-        console.log("EXEC");
-        resendEmail(viewAtendee.id);
-      },
-      () => {
-        setViewAtendee({
-          active: false,
-          attended: false,
-          name: "",
-          orgN: "",
-          orgP: "",
-          email: "",
-          number: "",
-          addr: "",
-          salutation: "",
-          registeredAt: 0,
-          id: "",
-        });
-      },
-      "Try again",
-      "Exit"
-    );
-  };
-
   useEffect(() => {
-    // only fetch when router slug is present, and acsTok is present
     if (!router.query.slug || !appData.acsTok) return;
     fetchEventData();
   }, [router.query.slug, appData.acsTok]);
-
-  // handles atendee filtration
-  useEffect(() => {
-    if (atendees.length === 0) return;
-    const tmp = atendees.filter((attendee) =>
-      Object.values(attendee).some((value) =>
-        value.toString().toLowerCase().includes(search.toLowerCase())
-      )
-    );
-
-    setFiltered(tmp);
-  }, [search, atendees]);
 
   if (!render) return <></>;
 
@@ -896,119 +336,7 @@ export default function ViewEvent() {
         <title>Eventra | View Event ({router.query.slug})</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <AnimatePresence>
-        {viewAtendee.active && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            key={1}
-            className="registration-form fixed w-full h-full top-0 left-0 bg-neutral-900/70 z-[9999] geist overflow-y-auto py-5 px-5"
-          >
-            <div className="flex items-center justify-center min-h-screen w-full">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  transition: { delay: 0.2, duration: 0.2 },
-                }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                key={13}
-                className="form w-full max-w-[400px] bg-white rounded-xl overflow-hidden "
-              >
-                <div className="px-5 py-2 flex justify-between items-center bg-emerald-600 text-white">
-                  <h1 className=" font-[500]">Atendee Information</h1>
-                  <div
-                    className="p-2 rounded-full w-max cursor-pointer"
-                    onClick={() => {
-                      setViewAtendee({
-                        active: false,
-                        attended: false,
-                        name: "",
-                        orgN: "",
-                        orgP: "",
-                        email: "",
-                        number: "",
-                        addr: "",
-                        salutation: "",
-                        registeredAt: 0,
-                        id: "",
-                      });
-                    }}
-                  >
-                    <X size="15px" strokeWidth={5} />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 px-5 py-5">
-                  {viewAtendee.attended && (
-                    <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
-                      IN EVENT
-                    </p>
-                  )}
-                  {!viewAtendee.attended && (
-                    <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
-                      NOT IN EVENT
-                    </p>
-                  )}
-                  <h1 className="font-[600] text-xl">{viewAtendee.name}</h1>
-                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
-                    <Briefcase size="15px" />
-                    {viewAtendee.orgN} - {viewAtendee.orgP}
-                  </p>
-                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
-                    <Mail size="15px" />
-                    {viewAtendee.email}
-                  </p>
-                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
-                    <Phone size="15px" />
-                    {viewAtendee.number}
-                  </p>
-                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
-                    <MapPin size="15px" />
-                    {viewAtendee.addr || "N/A"}
-                  </p>
-                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
-                    <User size="15px" />
-                    Salutation: {viewAtendee.salutation}
-                  </p>
-                  <p className="text-sm text-neutral-900 flex gap-2 items-center">
-                    <Clock size="15px" />
-                    Registered at:{" "}
-                    {moment
-                      .unix(viewAtendee.registeredAt)
-                      .format("MMM DD, YYYY - hh:mm:ss A")}
-                  </p>
-                </div>
-                <div className="px-5 py-4 flex gap-2">
-                  <button
-                    onClick={() => resendEmail(viewAtendee.id)}
-                    className="px-5 text-black border-1 hover:bg-neutral-50 border-neutral-100 w-1/2 flex gap-2 items-center justify-center py-1.5 rounded-md text-sm"
-                  >
-                    <Mail size="12px" strokeWidth={3} className="shrink-0" />{" "}
-                    Resend E-Mail
-                  </button>
-                  <button
-                    onClick={() =>
-                      printQR({
-                        eventName: currEvent.name,
-                        attendeeName: viewAtendee.name,
-                        organization: viewAtendee.orgN,
-                        position: viewAtendee.orgP,
-                        identifier: viewAtendee.id,
-                      })
-                    }
-                    className="px-5 bg-emerald-600 text-white w-1/2 flex gap-2 items-center justify-center py-1.5 rounded-md text-sm"
-                  >
-                    <Printer size="12px" strokeWidth={3} className="shrink-0" />{" "}
-                    Print Passport
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
       <QRCode
         ev={currEvent.name}
         active={qrScanner}
@@ -1020,208 +348,7 @@ export default function ViewEvent() {
         }}
         onFailPulse={() => {}}
       />
-      <AnimatePresence>
-        {editAtendee.active && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            key={1}
-            className="registration-form fixed w-full h-full top-0 left-0 bg-neutral-900/70 z-[9999] geist overflow-y-auto py-5 px-5"
-          >
-            <div className="flex items-center justify-center min-h-screen w-full">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  transition: { delay: 0.2, duration: 0.2 },
-                }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                key={13}
-                className="form w-full max-w-[600px] bg-white rounded-xl overflow-hidden "
-              >
-                <div className="px-5 py-2 flex justify-between items-center bg-emerald-600 text-white">
-                  <h1 className=" font-[500]">Edit Atendee</h1>
-                  <div
-                    className="p-2 rounded-full w-max cursor-pointer"
-                    onClick={() => {
-                      setEditAtendee(setEditAtendeeDef);
-                    }}
-                  >
-                    <X size="15px" strokeWidth={5} />
-                  </div>
-                </div>
-                <div className="p-5 flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <TextInput
-                      identifier="name"
-                      title="Atendee Name"
-                      value={editAtendee.name.value}
-                      placeholder=""
-                      onInput={(e) => {
-                        setEditAtendee((pv) => ({
-                          ...pv,
-                          name: {
-                            err: "",
-                            value: e,
-                          },
-                        }));
-                      }}
-                      error={editAtendee.name.err}
-                      className="w-1/2"
-                      req
-                    />
-                    <TextInput
-                      identifier="salutation"
-                      title="Salutations"
-                      value={editAtendee.salutation.value}
-                      placeholder=""
-                      onInput={(e) => {
-                        setEditAtendee((pv) => ({
-                          ...pv,
-                          salutation: {
-                            err: "",
-                            value: e,
-                          },
-                        }));
-                      }}
-                      error={editAtendee.salutation.err}
-                      className="w-1/2"
-                      req
-                    />
-                  </div>
-                  <TextInput
-                    identifier="email"
-                    title="E-Mail"
-                    value={editAtendee.email.value}
-                    placeholder=""
-                    onInput={(e) => {
-                      setEditAtendee((pv) => ({
-                        ...pv,
-                        email: {
-                          err: "",
-                          value: e,
-                        },
-                      }));
-                    }}
-                    error={editAtendee.email.err}
-                    className=""
-                    req
-                  />
-                  <div className="flex gap-2">
-                    <TextInput
-                      identifier="orgN"
-                      title="Organization Name"
-                      value={editAtendee.orgN.value}
-                      placeholder=""
-                      onInput={(e) => {
-                        setEditAtendee((pv) => ({
-                          ...pv,
-                          orgN: {
-                            err: "",
-                            value: e,
-                          },
-                        }));
-                      }}
-                      error={editAtendee.orgN.err}
-                      className="w-1/2"
-                      req
-                    />
-                    <TextInput
-                      identifier="orgP"
-                      title="Organization Position"
-                      value={editAtendee.orgP.value}
-                      placeholder=""
-                      onInput={(e) => {
-                        setEditAtendee((pv) => ({
-                          ...pv,
-                          orgP: {
-                            err: "",
-                            value: e,
-                          },
-                        }));
-                      }}
-                      error={editAtendee.orgP.err}
-                      className="w-1/2"
-                      req
-                    />
-                  </div>
-                  <TextInput
-                    identifier="ph"
-                    title="Phone Number"
-                    value={editAtendee.number.value}
-                    placeholder=""
-                    onInput={(e) => {
-                      setEditAtendee((pv) => ({
-                        ...pv,
-                        number: {
-                          err: "",
-                          value: e,
-                        },
-                      }));
-                    }}
-                    error={editAtendee.number.err}
-                    className=""
-                    req
-                  />
-                  <TextInput
-                    identifier="address"
-                    title="Address"
-                    value={editAtendee.addr.value}
-                    placeholder=""
-                    onInput={(e) => {
-                      setEditAtendee((pv) => ({
-                        ...pv,
-                        addr: {
-                          err: "",
-                          value: e,
-                        },
-                      }));
-                    }}
-                    error={editAtendee.addr.err}
-                    className=""
-                  />
-                  <div>
-                    <label htmlFor="attended" className="font-[500] text-sm">
-                      Status
-                      <span className="font-[500] text-red-600">*</span>
-                    </label>
-                    <select
-                      name="attended"
-                      id=""
-                      value={editAtendee.attended.value}
-                      onChange={(e) => {
-                        setEditAtendee((pv) => ({
-                          ...pv,
-                          attended: {
-                            value: (e.target as HTMLSelectElement).value,
-                            err: "",
-                          },
-                        }));
-                      }}
-                      className="mt-1.5 w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
-                    >
-                      <option value="true">IN EVENT</option>
-                      <option value="false">NOT IN EVENT</option>
-                    </select>
-                  </div>
-                  <div className="buttons flex justify-end">
-                    <button
-                      onClick={() => {
-                        updateEditedAtendee();
-                      }}
-                      className="px-5 bg-emerald-600 text-white w-max flex gap-2 items-center justify-center py-1.5 rounded-md text-sm"
-                    >
-                      Upload Changes
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
       <main className="min-h-screen w-full bg-[#fff] inter">
         <nav className="w-full h-[60px] bg-white border-b-2 border-neutral-100 flex">
           <div className="h-full w-[60px] grid place-content-center border-r-2 border-neutral-100">
@@ -1278,58 +405,7 @@ export default function ViewEvent() {
               </h1>
             </div>
             <div className="flex gap-2 h-full py-3 border-l-2 border-neutral-100 pl-5 px-3">
-              <div className="h-full relative">
-                <button
-                  onClick={() => setOpenNotifications((pv) => !pv)}
-                  className="flex gap-2 items-center  h-full pl-3 pr-5 text-sm border-1 border-neutral-200 hover:bg-black hover:text-white font-[300]"
-                  style={
-                    openNotifications
-                      ? { color: "white", backgroundColor: "black" }
-                      : {}
-                  }
-                >
-                  <Bell size="15px" /> Notifications
-                </button>
-                {openNotifications && (
-                  <div
-                    ref={notificationPopupRef}
-                    className="z-[999] max-h-[300px] overflow-y-scroll absolute top-[110%] right-0 bg-white border-1 border-neutral-100 overflow-hidden rounded-lg w-[500px] py-2 text-sm flex flex-col gap-1"
-                  >
-                    {!fetching.notifications &&
-                      notifications.map((d, i) => {
-                        return (
-                          <>
-                            <div className=" px-5 py-1 border-y-1 border-neutral-100">
-                              <h1 className="type font-[500]">
-                                {d.type === "EVN-001" && "Registration"}
-                              </h1>
-                              <p>{d.data}</p>
-                              <p className="text-right text-xs">
-                                {moment
-                                  .unix(parseInt(d.stamp))
-                                  .format("MMM DD hh:mm:ss A")}
-                              </p>
-                            </div>
-                          </>
-                        );
-                      })}
-                    {fetching.notifications && (
-                      <div className="grid place-content-center h-full w-full">
-                        <div className="flex items-center gap-2">
-                          <CircularProgress
-                            size={40}
-                            thickness={3}
-                            disableShrink
-                            sx={{
-                              color: "black", // spinner stroke
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <Notifications />
               <Avatar />
             </div>
           </div>
@@ -1399,7 +475,7 @@ export default function ViewEvent() {
           >
             <div className="h-full w-full">
               <div className="grid grid-cols-3 gap-2">
-                <div className="p-5 relative h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md geist overflow-hidden">
+                <div className="relative h-[250px] p-5 col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md geist overflow-hidden">
                   {!fetching.mainEvent && (
                     <>
                       <div className="relative z-[2]">
@@ -1420,18 +496,29 @@ export default function ViewEvent() {
                           </div>
                         )}
                         <h1 className="text-2xl text-white font-[500] mt-1">
-                          {currEvent?.name}
+                          {currEvent.name}
                         </h1>
                         <p className="text-neutral-100 text-sm">
                           {moment
                             .unix(currEvent.date)
-                            .utcOffset(currEvent.offsetT)
+                            .utcOffset(currEvent.offset)
                             .format("dddd, MMM DD, YYYY")}{" "}
-                          - {currEvent?.location}
+                          :{" "}
+                          {moment
+                            .unix(currEvent.startT)
+                            .utcOffset(currEvent.offset)
+                            .format("hh:mm A")}
+                          {" - "}
+                          {moment
+                            .unix(currEvent.endT)
+                            .utcOffset(currEvent.offset)
+                            .format("hh:mm A")}
+                          {" / "}
+                          {currEvent.location}
                         </p>
                         <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
-                          <Users size="15px" /> Capacity: {currEvent.atendeeLim}{" "}
-                          atendees
+                          <Users size="15px" /> Capacity:{" "}
+                          {currEvent.attendeeLim} atendees
                         </p>
                         {currEvent.allowWalkIn && (
                           <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
@@ -1447,7 +534,7 @@ export default function ViewEvent() {
                       </div>
                       <div className="absolute top-0 right-0 w-full h-full z-[1]">
                         <img
-                          src={currEvent?.coverFile}
+                          src={currEvent.coverFile}
                           alt=""
                           className="h-full w-full object-cover brightness-30"
                         />
@@ -1470,345 +557,27 @@ export default function ViewEvent() {
                   )}
                 </div>
                 <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                  <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
-                    <Users size="15px" strokeWidth={2} />
-                    Registrations Per Day
-                  </h1>
-                  {!fetching.lineAnalytics && (
-                    <div className="relative flex-1">
-                      <Line options={options} data={rpdOrd} />
-                    </div>
-                  )}
-                  {fetching.lineAnalytics && (
-                    <div className="grid place-content-center h-full w-full">
-                      <div className="flex items-center gap-2">
-                        <CircularProgress
-                          size={40}
-                          thickness={3}
-                          disableShrink
-                          sx={{
-                            color: "black", // spinner stroke
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <OrdEvRegLineAnalytics
+                    isFetching={fetching.lineAnalytics}
+                    data={rpdOrd}
+                  />
                 </div>
                 <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                  <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
-                    <Users size="15px" strokeWidth={2} />
-                    In Event / Not In Event
-                  </h1>
-                  <div className="flex-1 relative">
-                    {!fetching.pieAnalytics && (
-                      <Pie
-                        data={pieData}
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          plugins: { legend: { display: false } },
-                        }}
-                      />
-                    )}
-                    {fetching.pieAnalytics && (
-                      <div className="grid place-content-center h-full w-full">
-                        <div className="flex items-center gap-2">
-                          <CircularProgress
-                            size={40}
-                            thickness={3}
-                            disableShrink
-                            sx={{
-                              color: "black", // spinner stroke
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <OrdEvRegPieAnalytics
+                    isFetching={fetching.pieAnalytics}
+                    data={ioutOrd}
+                  />
                 </div>
 
                 <div className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
-                  <div>
-                    {!fetching.atendees && (
-                      <>
-                        <div className="flex justify-between items-center">
-                          <h1 className=" font-[500] text-sm">Atendees</h1>
-                          <div className="flex gap-2 items-center">
-                            <div className="search flex relative items-center">
-                              <Search
-                                size="15px"
-                                className="absolute right-[10px] top-1/2 translate-y-[-50%]"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Find an atendee..."
-                                onInput={(d) => {
-                                  setSearch(
-                                    (d.target as HTMLInputElement).value
-                                  );
-                                }}
-                                value={search}
-                                className="text-xs w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
-                              />
-                            </div>
-                            <div>
-                              <button
-                                onClick={() => refetchAtendees()}
-                                className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-5 py-1.5 text-black flex items-center gap-2 rounded-md"
-                              >
-                                <RefreshCcwDot size="15px" /> Refresh{" "}
-                              </button>
-                            </div>
-
-                            <div>
-                              <button
-                                onClick={() => {
-                                  modal.info(
-                                    "Unavailable",
-                                    "This feature is still in development, please wait for the next version of Eventra.",
-                                    () => {},
-                                    () => {},
-                                    "Okay",
-                                    "",
-                                    <AlertTriangle />,
-                                    "initial"
-                                  );
-                                }}
-                                className="text-xs bg-black hover:bg-neutral-800 px-5 py-1.5 text-white flex items-center gap-2 rounded-md"
-                              >
-                                <Download size="15px" /> Export Data
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        {filtered.length === 0 && (
-                          <p className="text-center mt-10">No atendees.</p>
-                        )}
-
-                        {filtered.length !== 0 && (
-                          <>
-                            <div className="atendee-table mt-5 rounded-lg overflow-hidden border-1 border-neutral-200 max-h-[500px] overflow-y-scroll">
-                              <div className="relative overflow-x-scroll w-full">
-                                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] bg-white font-[500] geist text-xs">
-                                  <div className="contents">
-                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                      Attendee
-                                    </div>
-                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                      Organization
-                                    </div>
-                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                      Phone Number
-                                    </div>
-                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                      Salutation
-                                    </div>
-                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                      Address
-                                    </div>
-                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                      Registered On
-                                    </div>
-                                    <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                      In Event?
-                                    </div>
-                                    <div className="p-3  font-[500] bg-neutral-100 whitespace-nowrap sticky right-0 z-10">
-                                      Options
-                                    </div>
-                                  </div>
-
-                                  {filtered.map((d, i) => {
-                                    return (
-                                      <div
-                                        key={i}
-                                        className="contents border-b-1 border-neutral-200 font-[500] geist text-xs"
-                                      >
-                                        <div className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
-                                          <p className="truncate">{d.name}</p>
-                                          <p className="font-[400] text-neutral-800 truncate">
-                                            {d.email}
-                                          </p>
-                                        </div>
-                                        <div className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
-                                          <p>{d.orgN}</p>
-                                          <p className="font-[400] text-neutral-800 flex items-center gap-1 truncate">
-                                            <Briefcase
-                                              size="12px"
-                                              className="shrink-0"
-                                            />
-                                            {d.orgP}
-                                          </p>
-                                        </div>
-                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                          <p className="font-[400] flex gap-1 items-center truncate">
-                                            <Phone
-                                              size="12px"
-                                              className="shrink-0"
-                                            />
-                                            {d.phoneNumber}
-                                          </p>
-                                        </div>
-                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                          <p className="font-[400] flex gap-1 items-center truncate">
-                                            <User
-                                              size="12px"
-                                              className="shrink-0"
-                                            />
-                                            {d.salutations}
-                                          </p>
-                                        </div>
-                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                          <p className="font-[400] flex gap-1 items-center truncate">
-                                            <HomeIcon
-                                              size="12px"
-                                              className="shrink-0"
-                                            />
-                                            {d.addr || "N/A"}
-                                          </p>
-                                        </div>
-                                        <div className="px-5 py-2  flex items-center whitespace-nowrap">
-                                          <p className="font-[400]">
-                                            {moment
-                                              .unix(d.registeredOn._seconds)
-                                              .format("MMM DD, YYYY (hh:mm A)")}
-                                          </p>
-                                        </div>
-                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                          {d.attended && (
-                                            <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
-                                              IN EVENT
-                                            </p>
-                                          )}
-                                          {!d.attended && (
-                                            <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
-                                              NOT IN EVENT
-                                            </p>
-                                          )}
-                                        </div>
-
-                                        <div className="bg-white px-5 py-2 text-right flex items-center gap-2 justify-end sticky z-[10] right-0">
-                                          <button
-                                            onClick={() => {
-                                              setEditAtendee({
-                                                active: true,
-                                                attended: {
-                                                  err: "",
-                                                  value: d.attended
-                                                    ? "true"
-                                                    : "false",
-                                                },
-                                                name: {
-                                                  err: "",
-                                                  value: d.name,
-                                                },
-                                                orgN: {
-                                                  err: "",
-                                                  value: d.orgN,
-                                                },
-                                                orgP: {
-                                                  err: "",
-                                                  value: d.orgP,
-                                                },
-                                                email: {
-                                                  err: "",
-                                                  value: d.email,
-                                                },
-                                                number: {
-                                                  err: "",
-                                                  value: d.phoneNumber,
-                                                },
-                                                addr: {
-                                                  err: "",
-                                                  value: d.addr,
-                                                },
-                                                salutation: {
-                                                  err: "",
-                                                  value: d.salutations,
-                                                },
-
-                                                id: d.id,
-                                              });
-                                            }}
-                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                          >
-                                            <Pencil size="15px" />
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              setViewAtendee({
-                                                active: true,
-                                                attended: d.attended,
-                                                name: d.name,
-                                                orgN: d.orgN,
-                                                orgP: d.orgP,
-                                                email: d.email,
-                                                number: d.phoneNumber,
-                                                addr: d.addr,
-                                                salutation: d.salutations,
-                                                registeredAt:
-                                                  d.registeredOn._seconds,
-                                                id: d.id,
-                                              });
-                                            }}
-                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                          >
-                                            <Eye size="15px" />
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              printQR({
-                                                eventName: currEvent.name,
-                                                attendeeName: d.name,
-                                                organization: d.orgN,
-                                                position: d.orgP,
-                                                identifier: d.id,
-                                              })
-                                            }
-                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                          >
-                                            <Printer size="15px" />
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              handleDeleteAtendee(
-                                                d.id,
-                                                d.name,
-                                                d.public_id_qr
-                                              );
-                                            }}
-                                            className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                          >
-                                            <Trash size="15px" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </>
-                    )}
-
-                    {fetching.atendees && (
-                      <>
-                        <div className="h-[600px]">
-                          <div className="loading h-full w-full grid place-content-center">
-                            <CircularProgress
-                              size={40}
-                              thickness={3}
-                              disableShrink
-                              sx={{
-                                color: "black", // spinner stroke
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <OrdEvAttendees
+                    fetching={fetching.atendees}
+                    data={attendees}
+                    evName={currEvent.name}
+                    refetchAtendees={() => {
+                      refetchAtendees();
+                    }}
+                  />
                 </div>
               </div>
             </div>

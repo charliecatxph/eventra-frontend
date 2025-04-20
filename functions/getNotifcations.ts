@@ -12,6 +12,7 @@ interface GetNotificationsResponse {
 }
 
 export const getNotifications = (
+  orgId: string,
   apiLink: string,
   acsTok: string
 ): Promise<GetNotificationsResponse> => {
@@ -20,7 +21,7 @@ export const getNotifications = (
       const req = await axios
         .post(
           `${apiLink}/fetch-notifications`,
-          {},
+          { orgId: orgId },
           {
             headers: {
               Authorization: `Bearer ${acsTok}`,
@@ -36,7 +37,7 @@ export const getNotifications = (
       acs.data.forEach((notification: any) => {
         tmp.push({
           data: notification.data,
-          stamp: notification.stamp._seconds,
+          stamp: notification.stamp,
           type: notification.type,
         });
       });

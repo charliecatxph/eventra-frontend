@@ -52,7 +52,7 @@ export default function QRCode({
     number: "",
     addr: "",
     salutation: "",
-    registeredAt: 0,
+    registeredOn: 0,
     id: "",
   });
 
@@ -210,7 +210,7 @@ export default function QRCode({
           number: rx.data.data.phoneNumber,
           addr: rx.data.data.addr,
           salutation: rx.data.data.salutations,
-          registeredAt: rx.data.data.registeredOn._seconds,
+          registeredOn: rx.data.data.registeredOn,
           id: rx.data.data.id,
         });
         onSuccessPulse();
@@ -304,7 +304,7 @@ export default function QRCode({
                       <Clock size="15px" />
                       Registered at:{" "}
                       {moment
-                        .unix(viewAtendee.registeredAt)
+                        .unix(viewAtendee.registeredOn)
                         .format("MMM DD, YYYY - hh:mm:ss A")}
                     </p>
                   </div>

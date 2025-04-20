@@ -87,9 +87,7 @@ export default function Login() {
           id: decoded.id,
         })
       );
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
+      router.push("/dashboard");
     } catch (e: any) {
       if (!e.response) {
         return setRegStat((pv: any) => ({

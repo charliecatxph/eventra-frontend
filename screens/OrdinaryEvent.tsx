@@ -197,9 +197,7 @@ export default function OrdinaryEvent() {
           organizedBy: information.organizedBy.value.trim(),
           description: information.description.value.trim(),
           offset: time.offset.value,
-          date: Math.floor(
-            new Date(time.date.value).setHours(0, 0, 0, 0) / 1000
-          ),
+          date: Math.floor(new Date(time.date.value).setHours(0, 0, 0, 0)),
           startT: getUnix(time.date.value, time.startT.value),
           endT: getUnix(time.date.value, time.endT.value),
           allowWalkIn: customization.allowWalkIn.value,
@@ -214,7 +212,7 @@ export default function OrdinaryEvent() {
         try {
           setIsUploading(true);
           const req = await axios.post(
-            "http://localhost:8000/upload-ord-event",
+            `${process.env.NEXT_PUBLIC_API}/upload-ord-event`,
             form,
             {
               withCredentials: true,

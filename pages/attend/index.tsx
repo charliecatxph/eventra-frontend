@@ -220,14 +220,14 @@ export default function AttendEv() {
       );
 
       const xtcdat = xtc.data.data;
-
+      console.log(xtcdat);
       setCurrentEventReg({
         active: false,
         name: xtcdat.name,
         location: xtcdat.location,
-        startT: xtcdat.startT._seconds,
-        endT: xtcdat.endT._seconds,
-        date: xtcdat.date._seconds,
+        startT: xtcdat.startT,
+        endT: xtcdat.endT,
+        date: xtcdat.date,
         offsetT: xtcdat.offset,
         organizedBy: xtcdat.organizedBy,
         allowWalkIn: xtcdat.allowWalkIn,

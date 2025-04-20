@@ -501,17 +501,17 @@ export default function ViewEvent() {
                         <p className="text-neutral-100 text-sm">
                           {moment
                             .unix(currEvent.date)
-                            .utcOffset(currEvent.offset)
+                            .utcOffset(currEvent.offset * -1)
                             .format("dddd, MMM DD, YYYY")}{" "}
                           :{" "}
                           {moment
                             .unix(currEvent.startT)
-                            .utcOffset(currEvent.offset)
+                            .utcOffset(currEvent.offset * -1)
                             .format("hh:mm A")}
                           {" - "}
                           {moment
                             .unix(currEvent.endT)
-                            .utcOffset(currEvent.offset)
+                            .utcOffset(currEvent.offset * -1)
                             .format("hh:mm A")}
                           {" / "}
                           {currEvent.location}

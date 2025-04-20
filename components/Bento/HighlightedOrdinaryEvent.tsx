@@ -40,17 +40,17 @@ export default function HighlightedOrdinaryEvent({
               <p className="text-neutral-100 text-sm">
                 {moment
                   .unix(data.date)
-                  .utcOffset(data.offset)
+                  .utcOffset(data.offset * -1)
                   .format("dddd, MMM DD, YYYY")}{" "}
                 :{" "}
                 {moment
                   .unix(data.startT)
-                  .utcOffset(data.offset)
+                  .utcOffset(data.offset * -1)
                   .format("hh:mm A")}
                 {" - "}
                 {moment
                   .unix(data.endT)
-                  .utcOffset(data.offset)
+                  .utcOffset(data.offset * -1)
                   .format("hh:mm A")}
                 {" / "}
                 {data?.location}

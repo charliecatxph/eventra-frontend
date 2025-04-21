@@ -395,9 +395,9 @@ export default function AllEvents({ isFetching, data }: AllEventsParams) {
                             .utcOffset(d.offset * -1)
                             .format("hh:mm A")}{" "}
                           (GMT
-                          {d.offset / 60 >= 0
-                            ? `+${d.offset / 60}`
-                            : d.offset / 60}
+                          {(d.offset * -1) / 60 >= 0
+                            ? `+${(d.offset * -1) / 60}`
+                            : (d.offset * -1) / 60}
                           ), {d.location}
                         </p>
                       </div>

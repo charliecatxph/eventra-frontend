@@ -568,7 +568,7 @@ export default function AttendEv() {
               Event Programme{" "}
               <span className="text-orange-400 text-base">(Tentative)</span>
             </h1>
-            <div className="scheds mt-5 grid grid-cols-1 gap-[10px] text-xs md:text-sm lg:text-base lg:grid-cols-2">
+            <div className="scheds mt-5 grid grid-cols-1 gap-[10px] text-xs md:text-sm lg:text-base ">
               <div className="w-full">
                 <h1 className="font-[500] text-lg my-2">03 June 2025</h1>
                 <div className="border border-indigo-900">
@@ -597,7 +597,7 @@ export default function AttendEv() {
                         Arrival of the Honourable Datuk Seri Johari bin Abdul
                         Ghani
                       </div>
-                      <div>
+                      <div className="text-sm">
                         Minister of Plantation and Commodities, Malaysia
                       </div>
                     </div>
@@ -611,7 +611,9 @@ export default function AttendEv() {
                       <div className="text-indigo-800 font-semibold">
                         Welcome Remarks by the Chairman/CEO
                       </div>
-                      <div>Malaysian Palm Oil Council (MPOC)</div>
+                      <div className="text-sm">
+                        Malaysian Palm Oil Council (MPOC)
+                      </div>
                     </div>
                   </div>
 
@@ -624,10 +626,10 @@ export default function AttendEv() {
                         Keynote Address by the Honourable Datuk Seri Johari bin
                         Abdul Ghani
                       </div>
-                      <div>
+                      <div className="text-sm">
                         Minister of Plantation and Commodities, Malaysia
                       </div>
-                      <div className="mt-4">
+                      <div className="mt-4 text-sm">
                         Opening Ceremony of MPOF Philippines 2025
                       </div>
                     </div>
@@ -642,7 +644,9 @@ export default function AttendEv() {
                         Plenary Paper: Lauric Oils: Evolving Supply & Demand and
                         Future Market Dynamics
                       </div>
-                      <div>Dr. Julian McGill, Glenauk Economics</div>
+                      <div className="text-sm">
+                        Dr. Julian McGill, Glenauk Economics
+                      </div>
                     </div>
                   </div>
 
@@ -675,14 +679,22 @@ export default function AttendEv() {
                         Growth & Market Expansion in Lauric Oils & Downstream
                         Sectors
                       </div>
-                      <div>
+                      <div className="text-sm">
                         Moderator: Datul Saw Lee Chyan, Chairman, Malaysian
                         Oleochemical Manufacturers Group (MOMG)
                       </div>
-                      <div>
-                        Panelists: Industry Representatives from Malaysia and
-                        the Philippines
+                      <div className="text-sm">
+                        Panelist 1: Engr. Marco C. Reyes, Chairmain, United
+                        Coconut Associations of the Philippines Inc. (UCAP)
                       </div>
+                      <div className="text-sm">
+                        Panelist 2: Mr. Dean Lao Jr, Managing Director, Chemrez
+                        Technologies Inc.
+                      </div>
+                      <div className="text-sm">
+                        Panelist 3: Paul Bloemendal, CEO, PRETB Pte Ltd
+                      </div>
+                      <div className="text-sm">Panelist 4: TBA</div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -694,8 +706,9 @@ export default function AttendEv() {
                         Paper 1: What's Driving Demand For Palm-Based Fatty
                         Alcohols?
                       </div>
-
-                      <div>TBC</div>
+                      <div className="text-sm">
+                        Paul Bloemendal, PRETB Pte Ltd
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -708,7 +721,9 @@ export default function AttendEv() {
                         Wellness
                       </div>
 
-                      <div>TBC</div>
+                      <div className="text-sm">
+                        Mr. Low Liang Yeou, KLK Oleo
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -738,7 +753,9 @@ export default function AttendEv() {
                         Through MSPO
                       </div>
 
-                      <div>TBC</div>
+                      <div className="text-sm">
+                        Mr. Ravin Trapshah Ismail, Wilmar International Limited
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -751,7 +768,9 @@ export default function AttendEv() {
                         Health Perspectives
                       </div>
 
-                      <div>Dr. Sherlyn Lim, Avantsar Sdn Bhd</div>
+                      <div className="text-sm">
+                        Dr. Sherlyn Lim, Avantsar Sdn Bhd
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -764,7 +783,9 @@ export default function AttendEv() {
                         Malaysian Palm Olein
                       </div>
 
-                      <div>TBC</div>
+                      <div className="text-sm">
+                        Mr. Johari Minal, Malaysian Palm Oil Board (MPOB)
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-orange-100 border-b border-indigo-900">
@@ -785,7 +806,9 @@ export default function AttendEv() {
                         Fats
                       </div>
 
-                      <div>TBC</div>
+                      <div className="text-sm">
+                        Ms. Kate Phua Mui Leng, SD Guthrie Berhad
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -798,7 +821,9 @@ export default function AttendEv() {
                         Market and Its Growth Potential
                       </div>
 
-                      <div>TBC</div>
+                      <div className="text-sm">
+                        Mr. William Lau, Malaysian Palm Oil Council (MPOC)
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -810,7 +835,9 @@ export default function AttendEv() {
                         Paper 8: Palm & Lauric Market Outlook
                       </div>
 
-                      <div>Dr. Sathia Varqa, Fastmarkets Global Limited</div>
+                      <div className="text-sm">
+                        Dr. Sathia Varqa, Fastmarkets Global Limited
+                      </div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">
@@ -825,7 +852,7 @@ export default function AttendEv() {
                   </div>
                 </div>
               </div>
-              <div className="w-full">
+              {/* <div className="w-full">
                 <h1 className="font-[500] text-lg my-2">04 June 2025</h1>
                 <div className="border border-indigo-900">
                   <div className="flex bg-indigo-100 border-b border-indigo-900">
@@ -844,8 +871,13 @@ export default function AttendEv() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
+            <p className="mt-5 italic text-neutral-900 text-center text-sm">
+              Disclaimer: MPOC reserves the right to cancel or change the time
+              or date of the event and change its venue, content, and speakers
+              at any time at its discretion.
+            </p>
           </div>
         </section>
         <section className="sponsorships inter" id="sponsorship">

@@ -807,7 +807,8 @@ export default function AttendEv() {
                       </div>
 
                       <div className="text-sm">
-                        Ms. Kate Phua Mui Leng, SD Guthrie Berhad
+                        Datuk Dr. Robert Basker, Global Specialty Ingredients
+                        (M) Sdn Bhd
                       </div>
                     </div>
                   </div>

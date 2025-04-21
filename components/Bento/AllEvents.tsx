@@ -383,16 +383,16 @@ export default function AllEvents({ isFetching, data }: AllEventsParams) {
                         <p className="text-xs">
                           {moment
                             .unix(d.date)
-                            .utcOffset(d.offset)
+                            .utcOffset(d.offset * -1)
                             .format("dddd, MMM DD, YYYY")}{" "}
                           {moment
                             .unix(d.startT)
-                            .utcOffset(d.offset)
+                            .utcOffset(d.offset * -1)
                             .format("hh:mm A")}{" "}
                           -{" "}
                           {moment
                             .unix(d.endT)
-                            .utcOffset(d.offset)
+                            .utcOffset(d.offset * -1)
                             .format("hh:mm A")}{" "}
                           (GMT
                           {d.offset / 60 >= 0

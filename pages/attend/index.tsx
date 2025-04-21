@@ -25,9 +25,7 @@ import "intl-tel-input/styles";
 
 import dynamic from "next/dynamic";
 
-const IntlTelInput = dynamic(() => import("intl-tel-input/reactWithUtils"), {
-  ssr: false,
-});
+import IntlTelInput from "intl-tel-input/react";
 
 interface EVs {
   name: string;
@@ -153,6 +151,8 @@ export default function AttendEv() {
   const [errorCode, setErrorCode] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const intlTelInputRef = useRef<any>(null);
+
   const [render, setRender] = useState<boolean>(false);
   const [hCaptchaToken, setHCaptchaToken] = useState(null);
   const captchaRef = useRef(null);
@@ -220,7 +220,6 @@ export default function AttendEv() {
       );
 
       const xtcdat = xtc.data.data;
-      console.log(xtcdat);
       setCurrentEventReg({
         active: false,
         name: xtcdat.name,
@@ -252,6 +251,15 @@ export default function AttendEv() {
   useEffect(() => {
     setNotice("");
   }, [number]);
+
+  const clearIntlTelInput = () => {
+    const instance = intlTelInputRef.current?.getInstance();
+    if (!instance) {
+      console.warn("IntlTelInput not mounted yet");
+      return;
+    }
+    instance.setNumber("");
+  };
 
   const handleSubmitForm = async () => {
     let err = false;
@@ -327,12 +335,15 @@ export default function AttendEv() {
         cancelText: "Exit",
         onConfirm: () => {
           setRegistrationForm(regFormDefaults);
+
+          clearIntlTelInput();
           captchaRef.current?.resetCaptcha();
           modal.hide();
         },
         onCancel: () => {
           setCurrentEventReg(currentEventRegDefaults);
           setRegistrationForm(regFormDefaults);
+          clearIntlTelInput();
           modal.hide();
         },
 
@@ -1336,14 +1347,18 @@ export default function AttendEv() {
                         Phone Number
                         <span className="font-[500] text-red-600">*</span>
                       </p>
-                      <IntlTelInput
-                        onChangeNumber={setNumber}
-                        onChangeValidity={setIsValid}
-                        onChangeErrorCode={setErrorCode}
-                        initOptions={{
-                          initialCountry: "ph",
-                        }}
-                      />
+                      <div>
+                        <IntlTelInput
+                          onChangeNumber={setNumber}
+                          onChangeValidity={setIsValid}
+                          onChangeErrorCode={setErrorCode}
+                          ref={intlTelInputRef}
+                          initOptions={{
+                            initialCountry: "ph",
+                            loadUtils: () => import("intl-tel-input/utils"),
+                          }}
+                        />
+                      </div>
                       <AnimatePresence>
                         {notice && (
                           <motion.div

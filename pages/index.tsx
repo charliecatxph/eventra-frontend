@@ -7,12 +7,5 @@ export default function Home() {
   useEffect(() => {
     router.push(`/attend`);
   }, []);
-  return (
-    <>
-      <Head>
-        <title>Eventra | Welcome</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-    </>
-  );
+  return <></>;
 }

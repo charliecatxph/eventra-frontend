@@ -30,14 +30,23 @@ interface FetchAtendeeResponseSizeOnly {
 export const fetchAtendees = (
   mode: string,
   evId: string,
-  acsTok: string
+  acsTok: string,
+  count: number,
+  page: number,
+  sortBy: string,
+  sortDir: string,
+  search?: string
 ): Promise<FetchAtendeesResponse | FetchAtendeeResponseSizeOnly> => {
+  console.log(mode, evId, acsTok, count, page, sortDir, search);
   return new Promise(async (resolve, reject) => {
     try {
       const rq2 = await axios
-        .post(
-          `${process.env.NEXT_PUBLIC_API}/get-atendees`,
-          { evId: evId, mode: mode },
+        .get(
+          `${
+            process.env.NEXT_PUBLIC_API
+          }/get-atendees?evId=${evId}&mode=${mode}&count=${count}&page=${page}&sortBy=${sortBy}&sortDir=${sortDir}&search=${
+            search || ""
+          }`,
           {
             withCredentials: true,
             headers: { Authorization: `Bearer ${acsTok}` },
@@ -48,7 +57,7 @@ export const fetchAtendees = (
         });
 
       const at = rq2.data.data;
-
+      console.log(at);
       if (mode === "count") {
         resolve({
           data: at,

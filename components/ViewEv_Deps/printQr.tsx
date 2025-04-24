@@ -26,8 +26,8 @@ export function printQR({
   const root = createRoot(container);
   root.render(
     <QRCodeCanvas
-      value={`${process.env.NEXT_PUBLIC_DOMAIN}/atendee?=${identifier}`}
-      size={120}
+      value={`${process.env.NEXT_PUBLIC_DOMAIN}/passport?user=${identifier}`}
+      size={200}
     />
   );
 
@@ -53,14 +53,15 @@ export function printQR({
 
             .qr-cx {
               display: flex;
-              gap: 40px;
+              flex-direction: column;
+              gap: 20px;
               align-items: start;
-              margin: 2rem;
+            
               border: 1px gray dashed;
               padding: 1rem;
-              padding-right: 3rem;
-              width: max-content;
-              height: 150px;
+              margin: 2rem;
+              width: 9cm;
+              
             }
 
             .xct {
@@ -68,72 +69,88 @@ export function printQR({
               flex-direction: column;
               gap: 5px;
               font-family: "MS Gothic", sans-serif;
+              width: 100%;
             }
 
             .qr-code {
+              width:100%;
               display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100%;
-              width: 25%;
+              flex-direction: column;
+            }
+
+            .qr-code > img {
+              margin: 0 auto;
+              height: 3cm;
+              width:3cm;
             }
 
             .company {
-              font-size: 15px;
+              font-size: 9px;
               font-weight: 400;
               display: flex;
               align-items: center;
+              justify-content: center;
               gap: 10px;
+              color: gray;
             }
 
             .company img {
-              width: 20px;
-              height: 20px;
+              width: 10px;
+              height: 10px;
             }
 
             .ev-title {
-              font-size: 1.2rem;
+              font-size: 0.9rem;
               font-weight: 900;
+              text-align: center;
             }
 
             .atnd-name {
-              font-size: 1.1rem;
+              font-size: 1.2rem;
               font-weight: 600;
+              text-align: center;
+              margin-top: 0.5rem;
             }
 
             .atnd-org {
               font-size: 1rem;
               font-weight: 500;
+              text-align: center;
             }
 
             .atnd-country {
               font-size: 1rem;
               font-weight: 500;
+              text-align: center;
             }
 
             .identifier {
               color: gray;
               font-size:13px;
               margin-top: 0.5rem;
+              text-align: center;
+              font-size: 0.7rem;
+              
             }
           </style>
         </head>
-        <body onload="window.print(); window.close()">
+        <body onload="window.print(); window.close();">
           <div class="qr-cx">
             <div class="qr-code">
               <img src="${qrCodeImageUrl}" alt="QR Code" />
             </div>
             <div class="xct">
-              <div class="company">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzkiIHZpZXdCb3g9IjAgMCA5OSA4OSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI0My41IiBjeT0iMzYuNSIgcj0iMjUuNSIgZmlsbD0iI0VFMTgxOCI+PC9jaXJjbGU+PGNpcmNsZSBjeD0iNjIuNSIgY3k9IjQ2LjUiIHI9IjI1LjUiIGZpbGw9IiNGRUQxMUMiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjM2LjUiIGN5PSI1Mi41IiByPSIyNS41IiBmaWxsPSIjQTExOEZEIj48L2NpcmNsZT48L3N2Zz4=" />
-                <span>Eventra Event Passport</span>
-              </div>
+            
 
               <p class="ev-title">${eventName}</p>
               <p class="atnd-name">${attendeeName}</p>
               <p class="atnd-org">${organization}</p>
               <p class="atnd-country">${position}</p>
               <p class="identifier">[ ${identifier} ]</p>
+                <div class="company">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzkiIHZpZXdCb3g9IjAgMCA5OSA4OSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI0My41IiBjeT0iMzYuNSIgcj0iMjUuNSIgZmlsbD0iI0VFMTgxOCI+PC9jaXJjbGU+PGNpcmNsZSBjeD0iNjIuNSIgY3k9IjQ2LjUiIHI9IjI1LjUiIGZpbGw9IiNGRUQxMUMiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjM2LjUiIGN5PSI1Mi41IiByPSIyNS41IiBmaWxsPSIjQTExOEZEIj48L2NpcmNsZT48L3N2Zz4=" />
+                <span>Powered by Eventra</span>
+              </div>
             </div>
           </div>
         </body>

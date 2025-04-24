@@ -46,16 +46,17 @@ export default function DigitalID() {
     phoneNumber,
     email,
   }: Partial<Atendee>) => {
-    const vcardData = `
-  BEGIN:VCARD
-  VERSION:3.0
-  FN:${name}
-  ORG:${orgN}
-  TITLE:${orgP}
-  TEL;TYPE=WORK,VOICE:${phoneNumber}
-  EMAIL:${email}
-  END:VCARD
-    `.trim();
+    const vcardData = [
+      "BEGIN:VCARD",
+      "VERSION:2.1",
+      `N:${name};;;;`,
+      `FN:${name}`,
+      `ORG:${orgN}`,
+      `TITLE:${orgP}`,
+      `TEL;WORK;VOICE:${phoneNumber}`,
+      `EMAIL:${email}`,
+      "END:VCARD",
+    ].join("\r\n");
 
     const blob = new Blob([vcardData], { type: "text/vcard" });
     const url = URL.createObjectURL(blob);

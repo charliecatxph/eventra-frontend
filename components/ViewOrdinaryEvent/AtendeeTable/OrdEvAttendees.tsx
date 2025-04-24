@@ -419,6 +419,10 @@ export default function OrdEvAttendees({
               },
               {
                 responseType: "blob",
+                withCredentials: true,
+                headers: {
+                  Authorization: `Bearer ${appData.acsTok}`,
+                },
               }
             )
             .catch((e) => {

@@ -70,7 +70,7 @@ import HighlightedOrdinaryEvent from "@/components/Bento/HighlightedOrdinaryEven
 import { getOrdinaryEventInformation } from "@/functions/getOrdinaryEventInformation";
 
 import { Atendee, OrdinaryEvent } from "@/interfaces/Interface";
-import OrdEvAttendees from "@/components/Bento/OrdEvAttendees";
+import OrdEvAttendees from "@/components/ViewOrdinaryEvent/AtendeeTable/OrdEvAttendees";
 
 ChartJS.register(
   CategoryScale,
@@ -198,8 +198,17 @@ export default function ViewEvent() {
 
   const [attendees, setAttendees] = useState<Atendee[]>([]);
 
+  // atendee sort logic
+  const [currentSortMethod, setCurrentSortMethod] =
+    useState<string>("registeredOn-desc");
+  const [search, setSearch] = useState<string>("");
+  const [atnLimit, setAtnLimit] = useState<number>(10);
+  const [atnSize, setAtnSize] = useState<number>(0);
+  const [currPage, setCurrPage] = useState<number>(1);
+
   const router = useRouter();
 
+  // initial fetch
   const fetchEventData = async () => {
     try {
       setFetching((pv) => ({
@@ -233,7 +242,12 @@ export default function ViewEvent() {
       const getOrdRegistrationCount = await fetchAtendees(
         "all",
         ordinaryEventInformation.id,
-        appData.acsTok
+        appData.acsTok,
+        atnLimit,
+        1,
+        currentSortMethod.split("-")[0],
+        currentSortMethod.split("-")[1],
+        ""
       ).catch((e) => {
         throw new Error(e?.err);
       });
@@ -252,6 +266,7 @@ export default function ViewEvent() {
       }));
 
       setAttendees([...getOrdRegistrationCount.data[0].attendees]);
+      setAtnSize(getOrdRegistrationCount.data[0].stats.total);
 
       setTimeout(() => {
         setFetching((pv) => ({
@@ -269,6 +284,12 @@ export default function ViewEvent() {
     }
   };
 
+  // when there is nothing on the search bar, set the current page to 1
+  // useEffect(() => {
+  //   if (!search) setCurrPage(1);
+  // }, [search]);
+
+  // on manual click of the dedicated refresh button
   const refetchAtendees = async () => {
     setFetching((pv) => ({
       ...pv,
@@ -292,7 +313,12 @@ export default function ViewEvent() {
       const getOrdRegistrationCount = await fetchAtendees(
         "all",
         currEvent.id,
-        appData.acsTok
+        appData.acsTok,
+        atnLimit,
+        currPage,
+        currentSortMethod.split("-")[0],
+        currentSortMethod.split("-")[1],
+        search
       ).catch((e) => {
         throw new Error(e?.err);
       });
@@ -312,6 +338,13 @@ export default function ViewEvent() {
 
       setAttendees([...getOrdRegistrationCount.data[0].attendees]);
 
+      // if there are is something on search, it means we are filtering the data and we expect filtered data
+      if (search) {
+        setAtnSize(getOrdRegistrationCount.data[0].stats.queryTotal);
+      } else {
+        setAtnSize(getOrdRegistrationCount.data[0].stats.total);
+      }
+
       setFetching((pv) => ({
         ...pv,
         lineAnalytics: false,
@@ -322,6 +355,51 @@ export default function ViewEvent() {
       router.push("/dashboard");
     }
   };
+
+  // function for refreshing the atendees thru search and sort
+  const refetchAtendeesSortSearch = async () => {
+    setFetching((pv) => ({
+      ...pv,
+      atendees: true,
+    }));
+
+    try {
+      const getOrdRegistrationCount = await fetchAtendees(
+        "all",
+        currEvent.id,
+        appData.acsTok,
+        atnLimit,
+        currPage,
+        currentSortMethod.split("-")[0],
+        currentSortMethod.split("-")[1],
+        search
+      ).catch((e) => {
+        throw new Error(e?.err);
+      });
+      setAttendees([...getOrdRegistrationCount.data[0].attendees]);
+
+      // atn size is dynamically set with reference to the query length, query is limited by the atnLim variable
+      setAtnSize(getOrdRegistrationCount.data[0].stats.queryTotal);
+
+      setFetching((pv) => ({
+        ...pv,
+        atendees: false,
+      }));
+    } catch (e) {
+      router.push("/dashboard");
+    }
+  };
+
+  useEffect(() => {
+    if (!currEvent.id || fetching.atendees) return;
+    const debounce = setTimeout(() => {
+      refetchAtendeesSortSearch();
+    }, 500);
+
+    return () => {
+      clearTimeout(debounce);
+    };
+  }, [currentSortMethod, search, currEvent.id, currPage]);
 
   useEffect(() => {
     if (!router.query.slug || !appData.acsTok) return;
@@ -577,6 +655,15 @@ export default function ViewEvent() {
                     refetchAtendees={() => {
                       refetchAtendees();
                     }}
+                    currentSortMethod={currentSortMethod}
+                    onChangeSortMethod={(st) => setCurrentSortMethod(st)}
+                    search={search}
+                    setSearch={(st) => setSearch(st)}
+                    currPage={currPage}
+                    dataSize={atnSize}
+                    limit={atnLimit}
+                    onPageNumberClick={(d) => setCurrPage(d)}
+                    evId={currEvent.id}
                   />
                 </div>
               </div>

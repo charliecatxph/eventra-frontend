@@ -1,10 +1,11 @@
 import { selectApp } from "@/features/appSlice";
 import { useModal } from "@/hooks/useModal";
-import { CircularProgress } from "@mui/material";
+import { CircularProgress, Pagination } from "@mui/material";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  ArrowUpRight,
   Briefcase,
   Check,
   Clock,
@@ -26,15 +27,27 @@ import {
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import TextInput from "../Inputs/TextInput";
-import { printQR } from "../ViewEv_Deps/printQr";
+import TextInput from "../../Inputs/TextInput";
+import { printQR } from "../../ViewEv_Deps/printQr";
 import { Atendee } from "@/interfaces/Interface";
+import { useClickOutside } from "@/hooks/UseClickOutside";
+import SortButton from "./SortButton";
+import EventraPagination from "./Pagination";
 
 interface OrdEvAttendeesParameters {
   fetching: boolean;
   data: Atendee[];
   evName: string;
+  search: string;
+  setSearch: (d: string) => void;
+  currentSortMethod: string;
+  onChangeSortMethod: (d: string) => void;
   refetchAtendees: () => void;
+  dataSize: number;
+  limit: number;
+  currPage: number;
+  onPageNumberClick: (d: number) => void;
+  evId: string;
 }
 const setEditAtendeeDef = {
   active: false,
@@ -77,13 +90,19 @@ export default function OrdEvAttendees({
   fetching,
   data,
   evName,
+  search,
+  setSearch,
+  currentSortMethod,
+  onChangeSortMethod,
   refetchAtendees,
+  dataSize,
+  limit,
+  currPage,
+  onPageNumberClick,
+  evId,
 }: OrdEvAttendeesParameters) {
   const modal = useModal();
   const appData = useSelector(selectApp);
-
-  const [search, setSearch] = useState<string>("");
-  const [filtered, setFiltered] = useState<any[]>([]);
 
   const [editAtendee, setEditAtendee] = useState<any>({
     active: false,
@@ -388,20 +407,68 @@ export default function OrdEvAttendees({
     );
   };
 
-  // handles atendee filtration
-  useEffect(() => {
-    if (data.length === 0) {
-      setFiltered([]);
-      return;
-    }
-    const tmp = data.filter((attendee) =>
-      Object.values(attendee).some((value) =>
-        value.toString().toLowerCase().includes(search.toLowerCase())
-      )
-    );
+  const handleDataExport = () => {
+    const printXLSX = (): Promise<any> => {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const response = await axios
+            .post(
+              "http://localhost:8000/api/download-xlsx-ord",
+              {
+                evId: evId,
+              },
+              {
+                responseType: "blob",
+              }
+            )
+            .catch((e) => {
+              throw new Error("Fail to export XLSX.");
+            });
 
-    setFiltered(tmp);
-  }, [search, data]);
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(response.data);
+          link.download = `${moment().format(
+            "MMMDDyyyy-hh:mm:ssA"
+          )}_AtendeeExport.xlsx`;
+          link.click();
+          resolve("");
+        } catch (e: any) {
+          reject(e.message);
+        }
+      });
+    };
+
+    modal.close();
+
+    modal.promise(
+      <ArrowUpRight />,
+      "Data Export",
+      "Confirm export attendee data?",
+      () => {},
+      () => {},
+      "Export",
+      "Cancel",
+      () => printXLSX(),
+      "Exporting attendees to XLSX...",
+      <Check />,
+      "Export complete",
+      "Your attendees have been compiled to an XLSX.",
+      () => {},
+      () => {},
+      "Proceed",
+      "",
+      <X />,
+      "Fail",
+      "Fail to export attendees to XLSX.",
+      () => {
+        handleDataExport();
+      },
+      () => {},
+      "Try again",
+      "Exit"
+    );
+  };
+
   return (
     <>
       <AnimatePresence>
@@ -720,63 +787,60 @@ export default function OrdEvAttendees({
         )}
       </AnimatePresence>
       <div>
+        <div className="flex justify-between items-center">
+          <h1 className=" font-[500] text-sm">Atendees</h1>
+          <div className="flex gap-2 items-center">
+            <div className="search flex relative items-center">
+              <Search
+                size="15px"
+                className="absolute right-[10px] top-1/2 translate-y-[-50%]"
+              />
+              <input
+                type="text"
+                placeholder="Find an atendee..."
+                onInput={(d) => {
+                  setSearch((d.target as HTMLInputElement).value);
+                }}
+                value={search}
+                className="text-xs w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
+              />
+            </div>
+
+            <SortButton
+              currentSortMethod={currentSortMethod}
+              onChangeSortMethod={onChangeSortMethod}
+            />
+
+            <div>
+              <button
+                onClick={() => refetchAtendees()}
+                className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-5 py-1.5 text-black flex items-center gap-2 rounded-md"
+              >
+                <RefreshCcwDot size="15px" /> Refresh{" "}
+              </button>
+            </div>
+
+            <div>
+              <button
+                onClick={() => {
+                  handleDataExport();
+                }}
+                className="text-xs bg-black hover:bg-neutral-800 px-5 py-1.5 text-white flex items-center gap-2 rounded-md"
+              >
+                <Download size="15px" /> Export Data to XLSX
+              </button>
+            </div>
+          </div>
+        </div>
         {!fetching && (
           <>
-            <div className="flex justify-between items-center">
-              <h1 className=" font-[500] text-sm">Atendees</h1>
-              <div className="flex gap-2 items-center">
-                <div className="search flex relative items-center">
-                  <Search
-                    size="15px"
-                    className="absolute right-[10px] top-1/2 translate-y-[-50%]"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Find an atendee..."
-                    onInput={(d) => {
-                      setSearch((d.target as HTMLInputElement).value);
-                    }}
-                    value={search}
-                    className="text-xs w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
-                  />
-                </div>
-                <div>
-                  <button
-                    onClick={() => refetchAtendees()}
-                    className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-5 py-1.5 text-black flex items-center gap-2 rounded-md"
-                  >
-                    <RefreshCcwDot size="15px" /> Refresh{" "}
-                  </button>
-                </div>
-
-                <div>
-                  <button
-                    onClick={() => {
-                      modal.info(
-                        "Unavailable",
-                        "This feature is still in development, please wait for the next version of Eventra.",
-                        () => {},
-                        () => {},
-                        "Okay",
-                        "",
-                        <AlertTriangle />,
-                        "initial"
-                      );
-                    }}
-                    className="text-xs bg-black hover:bg-neutral-800 px-5 py-1.5 text-white flex items-center gap-2 rounded-md"
-                  >
-                    <Download size="15px" /> Export Data
-                  </button>
-                </div>
-              </div>
-            </div>
-            {filtered.length === 0 && (
+            {data.length === 0 && (
               <p className="text-center mt-10">No atendees.</p>
             )}
 
-            {filtered.length !== 0 && (
+            {data.length !== 0 && (
               <>
-                <div className="atendee-table mt-5 rounded-lg overflow-hidden border-1 border-neutral-200 max-h-[500px] overflow-y-scroll">
+                <div className="h-[400px] atendee-table mt-5 rounded-lg overflow-hidden border-1 border-neutral-200 overflow-y-scroll">
                   <div className="relative overflow-x-scroll w-full">
                     <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] bg-white font-[500] geist text-xs">
                       <div className="contents">
@@ -806,7 +870,7 @@ export default function OrdEvAttendees({
                         </div>
                       </div>
 
-                      {filtered.map((d, i) => {
+                      {data.map((d, i) => {
                         return (
                           <div
                             key={i}
@@ -961,6 +1025,12 @@ export default function OrdEvAttendees({
                     </div>
                   </div>
                 </div>
+                <EventraPagination
+                  dataSize={dataSize}
+                  currPage={currPage}
+                  limit={limit}
+                  onPageNumberClick={onPageNumberClick}
+                />
               </>
             )}
           </>

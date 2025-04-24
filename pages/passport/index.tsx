@@ -3,6 +3,7 @@ import { CircularProgress } from "@mui/material";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import { TriangleAlert } from "lucide-react";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -76,6 +77,11 @@ export default function DigitalID() {
   if (fetching) {
     return (
       <>
+        <Head>
+          <title>Eventra | Digital ID</title>
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
         <main className="h-screen w-screen grid place-content-center">
           <AnimatePresence>
             {animateStage === 1 && (

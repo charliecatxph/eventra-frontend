@@ -579,7 +579,7 @@ export default function AttendEv() {
               Event Programme{" "}
               <span className="text-orange-400 text-base">(Tentative)</span>
             </h1>
-            <div className="scheds mt-5 grid grid-cols-1 gap-[10px] text-xs md:text-sm lg:text-base ">
+            <div className="scheds mt-5 grid grid-cols-1 gap-[10px] text-xs md:text-sm lg:text-base lg:grid-cols-2">
               <div className="w-full">
                 <h1 className="font-[500] text-lg my-2">03 June 2025</h1>
                 <div className="border border-indigo-900">
@@ -620,10 +620,10 @@ export default function AttendEv() {
                     </div>
                     <div className="w-3/4 p-4">
                       <div className="text-indigo-800 font-semibold">
-                        Welcome Remarks by the Chairman/CEO
+                        Welcome Remarks by Ms. Belvinder Sron
                       </div>
                       <div className="text-sm">
-                        Malaysian Palm Oil Council (MPOC)
+                        CEO of Malaysian Palm Oil Council (MPOC)
                       </div>
                     </div>
                   </div>
@@ -864,7 +864,7 @@ export default function AttendEv() {
                   </div>
                 </div>
               </div>
-              {/* <div className="w-full">
+              <div className="w-full">
                 <h1 className="font-[500] text-lg my-2">04 June 2025</h1>
                 <div className="border border-indigo-900">
                   <div className="flex bg-indigo-100 border-b border-indigo-900">
@@ -883,7 +883,7 @@ export default function AttendEv() {
                     </div>
                   </div>
                 </div>
-              </div> */}
+              </div>
             </div>
             <p className="mt-5 italic text-neutral-900 text-center text-sm">
               Disclaimer: MPOC reserves the right to cancel or change the time

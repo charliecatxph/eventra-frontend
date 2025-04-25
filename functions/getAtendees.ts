@@ -37,7 +37,6 @@ export const fetchAtendees = (
   sortDir: string,
   search?: string
 ): Promise<FetchAtendeesResponse | FetchAtendeeResponseSizeOnly> => {
-  console.log(mode, evId, acsTok, count, page, sortDir, search);
   return new Promise(async (resolve, reject) => {
     try {
       const rq2 = await axios
@@ -57,7 +56,6 @@ export const fetchAtendees = (
         });
 
       const at = rq2.data.data;
-      console.log(at);
       if (mode === "count") {
         resolve({
           data: at,

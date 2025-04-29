@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch } from "@/features/store";
 import { selectApp } from "@/features/appSlice";
 import { appUpdate } from "@/features/appSlice";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 
@@ -18,10 +18,12 @@ interface UserJWTPayload {
   id: string;
 }
 
-export function useSecureRoute(callback: () => void) {
+export function redirectIfAuthenticated() {
   const router = useRouter();
   const appData = useSelector(selectApp);
   const dispatch = useDispatch<AppDispatch>();
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
 
   const fetchUserData = async () => {
     try {
@@ -47,9 +49,9 @@ export function useSecureRoute(callback: () => void) {
         })
       );
 
-      callback();
+      router.push("/dashboard");
     } catch (e) {
-      router.push("/login");
+      setIsAuthenticated(false);
     }
   };
 
@@ -65,7 +67,9 @@ export function useSecureRoute(callback: () => void) {
     ) {
       fetchUserData();
     } else {
-      callback();
+      router.push("/dashboard");
     }
   }, []);
+
+  return isAuthenticated;
 }

@@ -35,6 +35,8 @@ export interface BizMatchEvent {
   status: string;
 }
 
+type AttendBizMatch = "ys" | "ym" | "no";
+
 export interface Atendee {
   id: string;
   addr: string;
@@ -49,4 +51,6 @@ export interface Atendee {
   qrId_secUrl: string;
   registeredOn: number;
   salutations: string;
+  attendBizMatch: AttendBizMatch;
+  country: string;
 }

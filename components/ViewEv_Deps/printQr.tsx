@@ -53,39 +53,36 @@ export function printQR({
 
             .qr-cx {
               display: flex;
-              flex-direction: column;
+              align-items: center;
               gap: 20px;
-              align-items: start;
             
               border: 1px gray dashed;
               padding: 1rem;
-              margin: 2rem;
-              width: 9cm;
+              
+              width: 8cm;
+              height:3cm;
               
             }
 
+            @page { size: landscape; }
+
             .xct {
               display: flex;
+              
               flex-direction: column;
               gap: 5px;
               font-family: "MS Gothic", sans-serif;
               width: 100%;
             }
 
-            .qr-code {
-              width:100%;
-              display: flex;
-              flex-direction: column;
-            }
-
             .qr-code > img {
-              margin: 0 auto;
-              height: 3cm;
-              width:3cm;
+           
+              height: 2.5cm;
+              width:2.5cm;
             }
 
             .company {
-              font-size: 9px;
+              font-size: 4px;
               font-weight: 400;
               display: flex;
               align-items: center;
@@ -95,42 +92,24 @@ export function printQR({
             }
 
             .company img {
-              width: 10px;
-              height: 10px;
+              width: 8px;
+              height: 8px;
             }
 
-            .ev-title {
-              font-size: 0.9rem;
-              font-weight: 900;
-              text-align: center;
-            }
 
             .atnd-name {
-              font-size: 1.2rem;
+              font-size: 1rem;
               font-weight: 600;
               text-align: center;
               margin-top: 0.5rem;
+              text-transform:uppercase;
             }
 
             .atnd-org {
-              font-size: 1rem;
+              font-size: 0.6rem;
               font-weight: 500;
               text-align: center;
-            }
-
-            .atnd-country {
-              font-size: 1rem;
-              font-weight: 500;
-              text-align: center;
-            }
-
-            .identifier {
-              color: gray;
-              font-size:13px;
-              margin-top: 0.5rem;
-              text-align: center;
-              font-size: 0.7rem;
-              
+              text-transform:uppercase;
             }
           </style>
         </head>
@@ -140,16 +119,10 @@ export function printQR({
               <img src="${qrCodeImageUrl}" alt="QR Code" />
             </div>
             <div class="xct">
-            
-
-              <p class="ev-title">${eventName}</p>
               <p class="atnd-name">${attendeeName}</p>
               <p class="atnd-org">${organization}</p>
-              <p class="atnd-country">${position}</p>
-              <p class="identifier">[ ${identifier} ]</p>
-                <div class="company">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzkiIHZpZXdCb3g9IjAgMCA5OSA4OSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI0My41IiBjeT0iMzYuNSIgcj0iMjUuNSIgZmlsbD0iI0VFMTgxOCI+PC9jaXJjbGU+PGNpcmNsZSBjeD0iNjIuNSIgY3k9IjQ2LjUiIHI9IjI1LjUiIGZpbGw9IiNGRUQxMUMiPjwvY2lyY2xlPjxjaXJjbGUgY3g9IjM2LjUiIGN5PSI1Mi41IiByPSIyNS41IiBmaWxsPSIjQTExOEZEIj48L2NpcmNsZT48L3N2Zz4=" />
-                <span>Powered by Eventra</span>
+             
+             
               </div>
             </div>
           </div>

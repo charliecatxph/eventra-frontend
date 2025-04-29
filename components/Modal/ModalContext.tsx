@@ -2,22 +2,24 @@ import { createContext, useContext, useState, ReactNode } from "react";
 import { Modal } from "./Modal";
 import { AnimatePresence } from "framer-motion";
 
-type ModalOptions = {
-  icon?: ReactNode;
-  title?: string;
-  content?: ReactNode;
-  confirmText?: string;
-  cancelText?: string;
+type ModalTypes = "std" | "loading";
+
+interface ModalOptions {
+  type: ModalTypes;
+  title: string;
+  description?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
-  hide?: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  icon?: ReactNode | null;
   color: string;
-};
+}
 
-type ModalContextType = {
+interface ModalContextType {
   show: (options: ModalOptions) => void;
   hide: () => void;
-};
+}
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
@@ -31,7 +33,10 @@ export const ModalProvider = ({ children }: { children: ReactNode }) => {
     <ModalContext.Provider value={{ show, hide }}>
       {children}
       <AnimatePresence>
-        {modal && <Modal {...modal} hide={hide} />}
+        {modal?.type === "std" && <Modal {...modal} hide={hide} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {modal?.type === "loading" && <Modal {...modal} hide={hide} />}
       </AnimatePresence>
     </ModalContext.Provider>
   );

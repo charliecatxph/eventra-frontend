@@ -65,10 +65,7 @@ export default function Dashboard() {
   const modal = useModal();
   const [fetching, setFetching] = useState<boolean>(true);
   const [render, setRender] = useState<boolean>(false);
-  useSecureRoute(
-    () => setRender(true),
-    () => {}
-  );
+  useSecureRoute(() => setRender(true));
   const appData = useSelector(selectApp);
 
   const [highlightOrdEv, setHighlightOrdEv] = useState<OrdinaryEvent>();
@@ -211,7 +208,7 @@ export default function Dashboard() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="min-h-screen w-full bg-[#fff] inter">
+      <main className="min-h-screen w-full bg-[#fff] inter ">
         <nav className="w-full h-[60px] bg-white border-b-2 border-neutral-100 flex">
           <div className="h-full w-[60px] grid place-content-center border-r-2 border-neutral-100">
             <svg

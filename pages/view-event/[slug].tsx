@@ -284,11 +284,6 @@ export default function ViewEvent() {
     }
   };
 
-  // when there is nothing on the search bar, set the current page to 1
-  // useEffect(() => {
-  //   if (!search) setCurrPage(1);
-  // }, [search]);
-
   // on manual click of the dedicated refresh button
   const refetchAtendees = async () => {
     setFetching((pv) => ({
@@ -427,7 +422,7 @@ export default function ViewEvent() {
         onFailPulse={() => {}}
       />
 
-      <main className="min-h-screen w-full bg-[#fff] inter">
+      <main className=" min-h-screen w-full bg-[#fff] inter">
         <nav className="w-full h-[60px] bg-white border-b-2 border-neutral-100 flex">
           <div className="h-full w-[60px] grid place-content-center border-r-2 border-neutral-100">
             <svg
@@ -655,14 +650,14 @@ export default function ViewEvent() {
                     refetchAtendees={() => {
                       refetchAtendees();
                     }}
-                    currentSortMethod={currentSortMethod}
-                    onChangeSortMethod={(st) => setCurrentSortMethod(st)}
-                    search={search}
-                    setSearch={(st) => setSearch(st)}
-                    currPage={currPage}
-                    dataSize={atnSize}
-                    limit={atnLimit}
-                    onPageNumberClick={(d) => setCurrPage(d)}
+                    currentSortMethod={currentSortMethod} // current sort method
+                    onChangeSortMethod={(st) => setCurrentSortMethod(st)} // change sort method
+                    search={search} // current search value
+                    setSearch={(st) => setSearch(st)} // search bar callback change str
+                    currPage={currPage} // pagination, current page
+                    dataSize={atnSize} // pagination, how many attendees have been fetched?
+                    limit={atnLimit} // pagination limit
+                    onPageNumberClick={(d) => setCurrPage(d)} // refetch atendees on page number click, fetching is centralized to the parent for centralized loading
                     evId={currEvent.id}
                   />
                 </div>

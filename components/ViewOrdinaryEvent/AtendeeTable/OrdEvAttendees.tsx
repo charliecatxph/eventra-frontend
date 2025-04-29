@@ -733,7 +733,7 @@ export default function OrdEvAttendees({
                 key={13}
                 className="form w-full max-w-[400px] bg-white rounded-xl overflow-hidden "
               >
-                <div className="px-5 py-2 flex justify-between items-center bg-emerald-600 text-white">
+                <div className="text-white px-5 py-2 flex justify-between items-center bg-emerald-600 ">
                   <h1 className=" font-[500]">Atendee Information</h1>
                   <div
                     className="p-2 rounded-full w-max cursor-pointer"

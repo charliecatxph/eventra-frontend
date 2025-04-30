@@ -488,6 +488,9 @@ export default function AttendEv() {
 
               <ul className=" items-center gap-[50px] text-sm font-[500] hidden md:flex">
                 <li className="cursor-pointer px-2 py-1 text-neutral-800 hover:text-neutral-900">
+                  <a href="#sponsors">Sponsors</a>
+                </li>
+                <li className="cursor-pointer px-2 py-1 text-neutral-800 hover:text-neutral-900">
                   <a href="#description">Description</a>
                 </li>
                 <li className="cursor-pointer px-2 py-1 text-neutral-800 hover:text-neutral-900">
@@ -574,6 +577,63 @@ export default function AttendEv() {
             </div>
           </div>
         </section>
+        <section className="inter mt-20" id="sponsors">
+          <div className="eventra-reg-container">
+            <h1 className="text-center text-xl font-[700] text-orange-500 md:text-2xl">
+              Titanium Sponsors
+            </h1>
+            <div className="flex items-center justify-center gap-5 mt-10">
+              <div className="titanium aspect-video w-full grid place-content-center max-w-[200px]">
+                <img src="assets/wilmar.png" alt="" />
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="inter mt-20">
+          <div className="eventra-reg-container">
+            <h1 className="text-center text-xl font-[700] text-orange-500 md:text-2xl">
+              Platinum Sponsors
+            </h1>
+            <div className="flex items-center justify-center gap-5 mt-10">
+              <div className="platinum aspect-video w-full grid place-content-center max-w-[200px]">
+                <img src="assets/klk.png" alt="" />
+              </div>
+              <div className="platinum aspect-video w-full grid place-content-center max-w-[200px]">
+                <img src="assets/palmtop.png" alt="" />
+              </div>
+              <div className="platinum aspect-video w-full grid place-content-center max-w-[200px]">
+                <img src="assets/bursamy.png" alt="" />
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="inter mt-20">
+          <div className="eventra-reg-container">
+            <h1 className="text-center text-xl font-[700] text-orange-500 md:text-2xl">
+              Gold Sponsors
+            </h1>
+            <div className="flex items-center justify-center gap-5 mt-10">
+              <div className="platinum aspect-video w-full grid place-content-center max-w-[200px]">
+                <img src="assets/sgx.png" alt="" />
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="inter mt-20">
+          <div className="eventra-reg-container">
+            <h1 className="text-center text-xl font-[700] text-orange-500 md:text-2xl">
+              Partners
+            </h1>
+            <div className="flex items-center justify-center gap-5 mt-10">
+              <div className="partners aspect-video w-full grid place-content-center max-w-[200px]">
+                <img src="assets/tristar.png" alt="" />
+              </div>
+              <div className="partners aspect-video w-full grid place-content-center max-w-[200px]">
+                <img src="assets/iffco.png" alt="" />
+              </div>
+            </div>
+          </div>
+        </section>
         <section className="inter mt-20" id="description">
           <div className="eventra-reg-container">
             <h1 className="text-center text-xl font-[700] text-orange-500 md:text-2xl">
@@ -616,8 +676,7 @@ export default function AttendEv() {
         <section className="programme inter mt-[100px]" id="program">
           <div className="eventra-reg-container">
             <h1 className="text-center text-xl font-[700] text-orange-500 md:text-2xl">
-              Event Programme{" "}
-              <span className="text-orange-400 text-base">(Tentative)</span>
+              Event Programme
             </h1>
             <div className="scheds mt-5 grid grid-cols-1 gap-[10px] text-xs md:text-sm lg:text-base lg:grid-cols-2">
               <div className="w-full">
@@ -745,7 +804,6 @@ export default function AttendEv() {
                       <div className="text-sm">
                         Panelist 3: Paul Bloemendal, CEO, PRETB Pte Ltd
                       </div>
-                      <div className="text-sm">Panelist 4: TBA</div>
                     </div>
                   </div>
                   <div className="flex bg-gray-100">

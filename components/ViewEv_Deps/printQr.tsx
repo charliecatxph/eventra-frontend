@@ -1,48 +1,48 @@
 import React from "react";
-import { QRCodeCanvas } from "qrcode.react";
-import { createRoot } from "react-dom/client";
+import {QRCodeCanvas} from "qrcode.react";
+import {createRoot} from "react-dom/client";
 
 interface QRProps {
-  eventName: string;
-  attendeeName: string;
-  organization: string;
-  position: string;
-  identifier: string;
+    eventName: string;
+    attendeeName: string;
+    organization: string;
+    position: string;
+    identifier: string;
 }
 
 export function printQR({
-  eventName,
-  attendeeName,
-  organization,
-  position,
-  identifier,
-}: QRProps) {
-  // Create a temporary container for rendering the QR code
-  const container = document.createElement("div");
-  container.style.position = "fixed";
-  container.style.left = "-9999px";
-  document.body.appendChild(container);
+                            eventName,
+                            attendeeName,
+                            organization,
+                            position,
+                            identifier,
+                        }: QRProps) {
+    // Create a temporary container for rendering the QR code
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "-9999px";
+    document.body.appendChild(container);
 
-  const root = createRoot(container);
-  root.render(
-    <QRCodeCanvas
-      value={`${process.env.NEXT_PUBLIC_DOMAIN}/passport?user=${identifier}`}
-      size={200}
-    />
-  );
+    const root = createRoot(container);
+    root.render(
+        <QRCodeCanvas
+            value={`${process.env.NEXT_PUBLIC_DOMAIN}/passport?user=${identifier}`}
+            size={200}
+        />
+    );
 
-  // Allow QR to render before accessing canvas
-  setTimeout(() => {
-    const canvas = container.querySelector("canvas");
-    if (!canvas) return;
+    // Allow QR to render before accessing canvas
+    setTimeout(() => {
+        const canvas = container.querySelector("canvas");
+        if (!canvas) return;
 
-    const qrCodeImageUrl = canvas.toDataURL();
+        const qrCodeImageUrl = canvas.toDataURL();
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) return;
 
-    printWindow.document.open();
-    printWindow.document.write(`
+        printWindow.document.open();
+        printWindow.document.write(`
       <html>
         <head>
           <title>Print QR Code</title>
@@ -129,12 +129,12 @@ export function printQR({
         </body>
       </html>
     `);
-    printWindow.document.close();
+        printWindow.document.close();
 
-    // Clean up
-    setTimeout(() => {
-      root.unmount();
-      document.body.removeChild(container);
-    }, 100);
-  }, 300); // Wait for QR to render
+        // Clean up
+        setTimeout(() => {
+            root.unmount();
+            document.body.removeChild(container);
+        }, 100);
+    }, 300); // Wait for QR to render
 }

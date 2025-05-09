@@ -5,7 +5,7 @@ import {CircularProgress} from "@mui/material";
 import axios from "axios";
 import {
     Briefcase,
-    Check,
+    Check, ChevronDown,
     Download,
     Eye,
     FileQuestion,
@@ -288,6 +288,8 @@ interface OrdEvAttendeesParameters {
     onChangeSortMethod: (d: string) => void;
     tableFilters: any;
     setTableFilters: (d: any) => void;
+    reqLimit: number;
+    setReqLimit: (d: any) => void;
     refetchAtendees: () => void;
     dataSize: number;
     limit: number;
@@ -307,6 +309,8 @@ export default function OrdEvAttendees({
                                            onChangeSortMethod,
                                            tableFilters,
                                            setTableFilters,
+    reqLimit,
+    setReqLimit,
                                            refetchAtendees,
                                            dataSize,
                                            limit,
@@ -774,6 +778,17 @@ export default function OrdEvAttendees({
                                 value={search}
                                 className="text-xs w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
                             />
+                        </div>
+                        <div>
+                            <select
+                                onChange={(e) => setReqLimit(parseInt(e.target.value))}
+                                value={reqLimit.toString()}
+                                className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-3 py-1.5 text-black flex items-center gap-2 rounded-md"
+                            >
+                                <option value="10">Limit to 10</option>
+                                <option value="50">Limit to 50</option>
+                                <option value="100">Limit to 100</option>
+                            </select>
                         </div>
                         <div>
                             <button

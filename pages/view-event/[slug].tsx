@@ -701,7 +701,7 @@ export default function ViewEvent() {
                                         onChangeSortMethod={(st) => setCurrentSortMethod(st)} // change sort method
                                         tableFilters={check}
                                         setTableFilters={(st) => {
-                                            console.log(st)
+
                                             setCheck(st)
                                         }}
                                         search={search} // current search value

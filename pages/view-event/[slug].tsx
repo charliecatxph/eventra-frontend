@@ -427,7 +427,7 @@ export default function ViewEvent() {
         return () => {
             clearTimeout(debounce);
         };
-    }, [currentSortMethod, search, currEvent.id, currPage, check]);
+    }, [currentSortMethod, search, currEvent.id, currPage, check, atnLimit]);
 
     useEffect(() => {
         if (!router.query.slug || !appData.acsTok) return;
@@ -704,6 +704,8 @@ export default function ViewEvent() {
 
                                             setCheck(st)
                                         }}
+                                        reqLimit={atnLimit}
+                                        setReqLimit={(dx) => setAtnLimit(dx)}
                                         search={search} // current search value
                                         setSearch={(st) => setSearch(st)} // search bar callback change str
                                         currPage={currPage} // pagination, current page

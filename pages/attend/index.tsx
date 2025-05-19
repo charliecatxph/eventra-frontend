@@ -608,7 +608,11 @@ export default function AttendEv() {
                             <div className="platinum aspect-video w-full grid place-content-center max-w-[200px]">
                                 <img src="assets/sgx.png" alt=""/>
                             </div>
+                            <div className="platinum aspect-video w-full grid place-content-center max-w-[200px]">
+                                <img src="assets/fgv.png" alt=""/>
+                            </div>
                         </div>
+
                     </div>
                 </section>
                 <section className="inter mt-20">
@@ -700,8 +704,7 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Arrival of the Honourable Datuk Seri Johari bin Abdul
-                                                Ghani
+                                                Arrival of the Honourable Datuk Seri Johari bin Abdul Ghani
                                             </div>
                                             <div className="text-sm">
                                                 Minister of Plantation and Commodities, Malaysia
@@ -719,7 +722,7 @@ export default function AttendEv() {
                                                 Welcome Remarks by Ms. Belvinder Sron
                                             </div>
                                             <div className="text-sm">
-                                                CEO of Malaysian Palm Oil Council (MPOC)
+                                                CEO of Malaysian Palm Oil Council
                                             </div>
                                         </div>
                                     </div>
@@ -731,8 +734,7 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Keynote Address by the Honourable Datuk Seri Johari bin
-                                                Abdul Ghani
+                                                Keynote Address by the Honourable Datuk Seri Johari bin Abdul Ghani
                                             </div>
                                             <div className="text-sm">
                                                 Minister of Plantation and Commodities, Malaysia
@@ -750,8 +752,8 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Plenary Paper: Lauric Oils: Evolving Supply & Demand and
-                                                Future Market Dynamics
+                                                Plenary Paper: Lauric Oils: Evolving Supply & Demand and Future
+                                                Market Dynamics
                                             </div>
                                             <div className="text-sm">
                                                 Dr. Julian McGill, Glenauk Economics
@@ -784,26 +786,23 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Panel Discussion - Unlocking ASEAN's Potential:
+                                                Panel Discussion – Unlocking ASEAN’s Potential:
+                                                Growth & Market Expansion in Lauric Oils & Downstream Sectors
                                             </div>
-                                            <div className="text-indigo-800 font-semibold">
-                                                Growth & Market Expansion in Lauric Oils & Downstream
-                                                Sectors
+
+                                            <div className="text-sm">
+                                                Moderator: Datuk Saw Lee Chyan, Chairman, Malaysian Oleochemical Manufacturers
+                                                Group
                                             </div>
                                             <div className="text-sm">
-                                                Moderator: Datul Saw Lee Chyan, Chairman, Malaysian
-                                                Oleochemical Manufacturers Group (MOMG)
+                                                Panelist 1: Engr. Marco C. Reyes, Chairman, United Coconut Associations of the
+                                                Philippines Inc.
                                             </div>
                                             <div className="text-sm">
-                                                Panelist 1: Engr. Marco C. Reyes, Chairmain, United
-                                                Coconut Associations of the Philippines Inc. (UCAP)
+                                                Panelist 2: Mr. Dean Lao Jr, President/CEO, Chemrez Technologies Inc.
                                             </div>
                                             <div className="text-sm">
-                                                Panelist 2: Mr. Dean Lao Jr, Managing Director, Chemrez
-                                                Technologies Inc.
-                                            </div>
-                                            <div className="text-sm">
-                                                Panelist 3: Paul Bloemendal, CEO, PRETB Pte Ltd
+                                                Panelist 3: Mr. Paul Bloemendal, CEO, PRETB Pte Ltd
                                             </div>
                                         </div>
                                     </div>
@@ -814,11 +813,10 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Paper 1: What's Driving Demand For Palm-Based Fatty
-                                                Alcohols?
+                                                Paper 1: Potential of Lauric Oils in Specialty Fats
                                             </div>
                                             <div className="text-sm">
-                                                Paul Bloemendal, PRETB Pte Ltd
+                                                Datuk Dr. Robert Basker, Global Specialty Ingredients (M) Sdn Bhd
                                             </div>
                                         </div>
                                     </div>
@@ -829,8 +827,7 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Paper 2: MCT Oil: The Future of Functional Nutrition and
-                                                Wellness
+                                                Paper 2: MCT Oil: The Future of Functional Nutrition and Wellness
                                             </div>
 
                                             <div className="text-sm">
@@ -868,7 +865,7 @@ export default function AttendEv() {
                                             </div>
 
                                             <div className="text-sm">
-                                                Mr. Ravin Trapshah Ismail, Wilmar International Limited
+                                                Mr. Ravin Trapshah Ismail, Wilmar International Pte Ltd
                                             </div>
                                         </div>
                                     </div>
@@ -879,8 +876,7 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Paper 4: Palm Oil in Nutrition: Scientific Insights and
-                                                Health Perspectives
+                                                Paper 4: Nutrients from Palm Oil: Health Benefits and its Applications
                                             </div>
 
                                             <div className="text-sm">
@@ -895,12 +891,11 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Paper 5: Advancements in Frying Applications with
-                                                Malaysian Palm Olein
+                                                Paper 5: Advancement in Frying Applications with Malaysian Palm Olein
                                             </div>
 
                                             <div className="text-sm">
-                                                Mr. Johari Minal, Malaysian Palm Oil Board (MPOB)
+                                                Mr. Johari Minal, Malaysian Palm Oil Board
                                             </div>
                                         </div>
                                     </div>
@@ -919,13 +914,12 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Paper 6: Potential Growth of Lauric Oils in Specialty
-                                                Fats
+                                                Paper 6: Deep Dive in the Philippines’ Beauty and Personal Care Market
+                                                and its Growth Potential
                                             </div>
 
                                             <div className="text-sm">
-                                                Datuk Dr. Robert Basker, Global Specialty Ingredients
-                                                (M) Sdn Bhd
+                                                Mr. William Lau, Malaysian Palm Oil Council
                                             </div>
                                         </div>
                                     </div>
@@ -936,12 +930,11 @@ export default function AttendEv() {
                                         </div>
                                         <div className="w-3/4 p-4">
                                             <div className="text-indigo-800 font-semibold">
-                                                Paper 7: Deep Dive into the Philippines' Personal Care
-                                                Market and Its Growth Potential
+                                                Paper 7: What’s Driving Demand for Palm-Based Fatty Alcohols?
                                             </div>
 
                                             <div className="text-sm">
-                                                Mr. William Lau, Malaysian Palm Oil Council (MPOC)
+                                                Mr. Paul Bloemendal, PRETB Pte Ltd
                                             </div>
                                         </div>
                                     </div>

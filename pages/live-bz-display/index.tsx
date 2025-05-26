@@ -279,11 +279,6 @@ export default function LiveBzDisplay() {
                 <img src="/assets/petals.png" /> Malaysian Palm Oil Forum
                 Philippines 2025
               </h1>
-              <p>
-                {currentTime
-                  ? moment.unix(Number(currentTime)).format("hh:mm:ss A")
-                  : "Initializing..."}
-              </p>
             </div>
 
             <table className="w-full table-fixed">

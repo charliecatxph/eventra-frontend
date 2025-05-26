@@ -246,45 +246,6 @@ export default function LiveBzDisplay() {
         voices.map((v) => `${v.name} (${v.lang})`)
       );
     }
-
-    const initializeWorker = () => {
-      try {
-        const worker = new Worker(
-          new URL("../workers/timeWorker.ts", import.meta.url)
-        );
-
-        worker.onmessage = (e) => {
-          setCurrentTime(e.data);
-        };
-
-        worker.onerror = (error) => {
-          console.error("Worker error:", error);
-          setCurrentTime("Error: Worker failed");
-          if (workerRef.current) {
-            workerRef.current.terminate();
-            workerRef.current = null;
-            setTimeout(initializeWorker, 1000);
-          }
-        };
-
-        worker.postMessage("start");
-        workerRef.current = worker;
-      } catch (error) {
-        console.error("Failed to initialize worker:", error);
-        setCurrentTime("Error: Failed to initialize");
-        setTimeout(initializeWorker, 1000);
-      }
-    };
-
-    initializeWorker();
-
-    return () => {
-      if (workerRef.current) {
-        workerRef.current.postMessage("stop");
-        workerRef.current.terminate();
-        workerRef.current = null;
-      }
-    };
   }, [bzId, begin]);
 
   // Cleanup socket connection on component unmount

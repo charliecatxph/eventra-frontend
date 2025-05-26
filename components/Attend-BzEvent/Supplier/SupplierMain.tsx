@@ -383,7 +383,9 @@ export default function SupplierMain() {
             <div className="relative">
               <p className="geist flex items-center gap-2 text-sm">
                 Logged in as{" "}
-                <span className="font-[500]">{bizData.supplier.name}</span>
+                <span className="font-[500] block max-w-[100px] truncate">
+                  {bizData.supplier.name}
+                </span>
                 {!userDropdown ? (
                   <ChevronDown
                     className="size-5 cursor-pointer"

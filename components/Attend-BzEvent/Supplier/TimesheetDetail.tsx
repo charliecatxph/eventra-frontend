@@ -88,7 +88,7 @@ export default function TimesheetDetail() {
                 <div className="mt-2 bg-emerald-700 text-emerald-50 px-7 py-5 rounded-md shadow-sm shadow-neutral-100 sticky top-[90px] z-[10]">
                   <div className="flex justify-between items-center">
                     <h1 className="text-lg md:text-2xl font-[700] flex items-center gap-2">
-                      <Clock />{" "}
+                      <Clock className="size-5" />{" "}
                       {moment(bizData.supplier.timeslot.startT).format(
                         "hh:mm A"
                       )}{" "}
@@ -105,7 +105,7 @@ export default function TimesheetDetail() {
                     <p className="text-sm mt-1 font-[600]">
                       {bizData.supplier.name}, {bizData.supplier.location}
                     </p>
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex items-center gap-1 flex-wrap mt-3">
                       <p className="text-xs mt-1 font-[500] bg-white text-black px-5 py-1 rounded-full flex items-center gap-2">
                         <Check
                           size="15px"

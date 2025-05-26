@@ -23,14 +23,14 @@ export default function SupplierTimesheetDisplay() {
     <>
       {!timeslot && (
         <>
-          <h1 className="font-[500] text-2xl">
+          <h1 className="font-[500] text-xl md:text-2xl">
             Hello,{" "}
             <span className="font-[700] text-emerald-700">
               {bizData.supplier.name}
             </span>
             !
           </h1>
-          <p className="text-neutral-800">
+          <p className="text-neutral-800 text-sm md:text-base">
             Your timesheet and appointments for this event is as displayed
             below.
           </p>

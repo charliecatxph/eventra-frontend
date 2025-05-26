@@ -21,23 +21,23 @@ export default function HighlightedOrdinaryEvent({
                     <div className="flex justify-between flex-col  p-5 relative z-[2] text-white h-full">
                         <div>
                             {data.status === "Upcoming" ? (
-                                <div className="text-white flex items-center gap-3 text-xs">
+                                <div className="text-white flex items-center gap-3 text-xs font-[600]">
                                     <div className="circle h-[12px] w-[12px] rounded-full bg-yellow-600"></div>
                                     {data.status}
                                 </div>
                             ) : data.status === "Ongoing" ? (
-                                <div className="text-white flex items-center gap-3 text-xs">
+                                <div className="text-white flex items-center gap-3 text-xs font-[600]">
                                     <div className="circle h-[12px] w-[12px] rounded-full bg-emerald-600"></div>
                                     {data.status}
                                 </div>
                             ) : (
-                                <div className="text-white flex items-center gap-3 text-xs">
+                                <div className="text-white flex items-center gap-3 text-xs font-[600]">
                                     <div className="circle h-[12px] w-[12px] rounded-full bg-red-600"></div>
                                     {data.status}
                                 </div>
                             )}
-                            <h1 className="text-2xl font-[500] mt-1">{data?.name}</h1>
-                            <p className="text-neutral-100 text-sm">
+                            <h1 className="text-2xl inter font-[700] mt-1">{data?.name}</h1>
+                            <p className="text-neutral-100 font-[500] text-sm">
                                 {moment
                                     .unix(data.date)
                                     .utcOffset(data.offset * -1)
@@ -56,7 +56,7 @@ export default function HighlightedOrdinaryEvent({
                                 {data?.location}
                             </p>
                             <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
-                                <Users size="15px"/> Capacity: {data.attendeeLim} atendees
+                                <Users size="15px"/> Capacity: {data.attendeeLim} attendees
                             </p>
                         </div>
                         <div className="flex items-center justify-between">

@@ -1,11 +1,18 @@
 import {configureStore} from "@reduxjs/toolkit";
 import appReducer from "./appSlice";
-import modalReducer from "./modalStore";
+import ordReducer from "./ordinaryEventSlice"
+import dashReducer from "./dashboardSlice"
+import bizReducer from "./attendBizmatchSlice"
+import bizDashReducer from './bizmatchEventSlice';
 
 export const store = configureStore({
     reducer: {
         app: appReducer, // Register profile slice
-        modal: modalReducer,
+
+        ordSlice: ordReducer,
+        dashSlice: dashReducer,
+        bizSlice: bizReducer,
+        bizDataSlice: bizDashReducer
     },
 });
 

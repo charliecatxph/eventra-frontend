@@ -31,6 +31,8 @@ export default function QRCode({
     const [isReady, setIsReady] = useState(false);
     const appData = useSelector(selectApp);
 
+    const [activateFastPrint, setActivateFastPrint] = useState<boolean>(false);
+
     const [viewAtendee, setViewAtendee] = useState<any>({
         active: false,
         attended: false,
@@ -160,7 +162,7 @@ export default function QRCode({
             ...pv,
             qr: false,
             fetching: true,
-            text: "Searching atendee...",
+            text: "Searching attendee...",
         }));
 
         try {
@@ -180,14 +182,33 @@ export default function QRCode({
                     throw new Error(e.response.data.err);
                 });
 
-            setTimeout(() => {
+
+            onSuccessPulse();
+
+            if (activateFastPrint) {
+                printQR({
+                    eventName: ev,
+                    attendeeName: rx.data.data.name,
+                    organization: rx.data.data.orgN,
+                    position: rx.data.data.orgP,
+                    identifier: rx.data.data.id,
+                });
+                setQrCodeComponent({
+                    qr: true,
+                    text: "",
+                    fetching: false,
+                    success: false,
+                    complete: false,
+                });
+                setDecodedData("");
+            } else {
                 setQrCodeComponent((pv) => ({
                     ...pv,
                     qr: false,
                     fetching: false,
                     success: false,
                     complete: true,
-                    text: "Atendee found.",
+                    text: "Attendee found.",
                 }));
                 setViewAtendee({
                     active: true,
@@ -202,8 +223,7 @@ export default function QRCode({
                     registeredOn: rx.data.data.registeredOn,
                     id: rx.data.data.id,
                 });
-                onSuccessPulse();
-            }, 200);
+            }
         } catch (e) {
             onFailPulse();
             setQrCodeComponent((pv) => ({
@@ -248,7 +268,7 @@ export default function QRCode({
                                 >
                                     <div
                                         className="px-5 py-2 flex justify-between items-center bg-emerald-600 text-white">
-                                        <h1 className=" font-[500]">Atendee Logged</h1>
+                                        <h1 className=" font-[500]">Attendee Logged</h1>
                                         <div
                                             className="p-2 rounded-full w-max cursor-pointer"
                                             onClick={() => {
@@ -415,13 +435,22 @@ export default function QRCode({
                                                                 color: "black", // spinner stroke
                                                             }}
                                                         />
-                                                        Searching atendee...
+                                                        Searching attendee...
                                                     </p>
                                                 </>
                                             ) : (
-                                                <p className="mt-5 text-center text-neutral-600">
-                                                    Please approach a QR to the camera.
-                                                </p>
+                                                <div>
+                                                    <p className="mt-5 text-center text-neutral-600">
+                                                        Please approach a QR to the camera.
+                                                    </p>
+                                                    <div className="flex items-center gap-2 text-sm font-[500] mt-2">
+                                                        <input checked={activateFastPrint}
+                                                               className="size-3 checked:bg-emerald-700 accent-emerald-700"
+                                                               onChange={(e) => setActivateFastPrint(e.target.checked)}
+                                                               type="checkbox" name="" id=""/> Enable fast
+                                                        scan-and-print
+                                                    </div>
+                                                </div>
                                             )}
                                         </>
                                     )}

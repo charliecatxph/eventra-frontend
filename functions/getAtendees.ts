@@ -61,7 +61,8 @@ export const fetchAtendees = (
                     }
                 )
                 .catch((e) => {
-                    throw new Error("Fail to fetch atendees.");
+
+                    throw new Error("Fail to fetch attendees.");
                 });
 
             const at = rq2.data.data;

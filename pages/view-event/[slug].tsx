@@ -1,23 +1,26 @@
-import {
-    AlertTriangle,
-    ArrowLeft,
-    Boxes,
-    ChevronRight,
-    CircleCheck,
-    CircleX,
-    Pencil,
-    QrCode,
-    Trash,
-    Users,
-} from "lucide-react";
+import {ArrowLeft, Boxes, ChevronRight, CircleCheck, CircleX, Pencil, QrCode, Trash, Users, X,} from "lucide-react";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
-import {useSelector} from "react-redux";
+import {useDispatch, useSelector} from "react-redux";
 import {selectApp} from "@/features/appSlice";
+import {
+    ordinaryEventData,
+    resetOrdinaryEvent,
+    setAttendees,
+    setEvent,
+    setFetching,
+    setFilters,
+    setInitialized,
+    setLineChartData,
+    setPieChartData,
+    setQrScanner,
+    setTotalAttendeeSize,
+    setTotalRegistered
+} from "@/features/ordinaryEventSlice";
 import {useSecureRoute} from "@/hooks/UseSecureRoute";
 import moment from "moment";
 import {CircularProgress} from "@mui/material";
-import {useModal} from "@/hooks/useModal";
+import {useModal} from "@/components/Modal/ModalContext";
 import Head from "next/head";
 
 import {
@@ -35,14 +38,10 @@ import {
 import QRCode from "@/components/QRCode";
 import Avatar from "@/components/Nav/Avatar";
 import OrdEvRegLineAnalytics from "@/components/Bento/OrdEvRegLineAnalytics";
-import {getOrdEventAnalytics} from "@/functions/getOrdEventAnalytics";
-import {fetchAtendees} from "@/functions/getAtendees";
 import OrdEvRegPieAnalytics from "@/components/Bento/OrdEvRegPieAnalytics";
 import Notifications from "@/components/Nav/Notifications";
-import {getOrdinaryEventInformation} from "@/functions/getOrdinaryEventInformation";
-
-import {Atendee, OrdinaryEvent} from "@/interfaces/Interface";
 import OrdEvAttendees from "@/components/ViewOrdinaryEvent/AtendeeTable/OrdEvAttendees";
+import fetchEventData from "@/functions/fetchEventData";
 
 ChartJS.register(
     CategoryScale,
@@ -56,55 +55,9 @@ ChartJS.register(
     ArcElement
 );
 
-interface PieChartData {
-    labels: string[];
-    datasets: [
-        {
-            label: string;
-            data: number[];
-            backgroundColor: string[];
-            borderColor: string[];
-            borderWidth: number;
-        }
-    ];
-}
-
-interface LineChartData {
-    labels: string[];
-    datasets: [
-        {
-            label: string;
-            data: number[];
-            borderColor: string;
-            tension: number;
-            pointRadius: number;
-            pointHoverRadius: number;
-            pointBackgroundColor: string;
-            pointHoverBackgroundColor: string;
-            pointBorderColor: string;
-            pointHoverBorderColor: string;
-        }
-    ];
-}
-
-interface FetchingData {
-    mainEvent: boolean;
-    lineAnalytics: boolean;
-    pieAnalytics: boolean;
-    atendees: boolean;
-    notifications: boolean;
-}
 
 export default function ViewEvent() {
     const modal = useModal();
-
-    const [fetching, setFetching] = useState<FetchingData>({
-        mainEvent: false,
-        lineAnalytics: false,
-        pieAnalytics: false,
-        atendees: false,
-        notifications: false,
-    });
 
     const [render, setRender] = useState<boolean>(false);
     useSecureRoute(() => {
@@ -112,326 +65,166 @@ export default function ViewEvent() {
     });
 
     const appData = useSelector(selectApp);
-
-    const [rpdOrd, setRpdOrd] = useState<LineChartData>({
-        labels: [],
-        datasets: [
-            {
-                label: "Registrations",
-                data: [],
-                borderColor: "oklch(55.8% 0.288 302.321)",
-
-                tension: 1,
-
-                pointRadius: 4, // Visible point
-                pointHoverRadius: 6, // Enlarges on hover
-                pointBackgroundColor: "#fff",
-                pointHoverBackgroundColor: "#4338CA",
-                pointBorderColor: "#000",
-                pointHoverBorderColor: "#fff",
-            },
-        ],
-    });
-
-    const [ioutOrd, setIoutOrd] = useState<PieChartData>({
-        labels: ["Not in Event", "In Event"],
-        datasets: [
-            {
-                label: "Atendee",
-                data: [],
-                backgroundColor: ["rgba(231, 76, 60,0.2)", "rgba(52, 152, 219,0.2)"],
-                borderColor: ["rgba(231, 76, 60,1.0)", "rgba(52, 152, 219,1.0)"],
-                borderWidth: 1,
-            },
-        ],
-    });
-
-    const [qrScanner, setQrScanner] = useState<boolean>(false);
-
-    const [currEvent, setCurrEvent] = useState<OrdinaryEvent>({
-        id: "",
-        name: "",
-        orgId: "",
-        allowWalkIn: false,
-        attendeeLim: 0,
-        coverFile: "",
-        coverFilePubId: "",
-        date: 0,
-        description: "",
-        endT: 0,
-        location: "",
-        offset: 0,
-        organizedBy: "",
-        startT: 0,
-        upl_on: 0,
-        type: "",
-        status: "",
-    });
-
-    const [attendees, setAttendees] = useState<Atendee[]>([]);
-    const [filterable, setFilterable] = useState<any>({});
-
-    // atendee sort logic
-    const [currentSortMethod, setCurrentSortMethod] =
-        useState<string>("registeredOn-desc");
-    const [search, setSearch] = useState<string>("");
-    const [atnLimit, setAtnLimit] = useState<number>(10);
-    const [atnSize, setAtnSize] = useState<number>(0);
-    const [currPage, setCurrPage] = useState<number>(1);
-
-    const [check, setCheck] = useState<any>({
-        attended: {
-            in: true,
-            out: true,
-        },
-        attendBizMatch: {
-            ys: true,
-            ym: true,
-            no: true,
-        },
-        orgN: {},
-        country: {}
-    })
+    const ordEvData = useSelector(ordinaryEventData);
+    const dispatch = useDispatch()
 
     const router = useRouter();
 
-    const parseFilters = () => {
-        let tmp = {
-            attended: [],
-            orgN: [],
-            country: [],
-            attendBizMatch: []
-        }
-        Object.keys(check.attended).forEach(key => {
-            check.attended[key] && tmp.attended.push(key);
-        })
 
-        Object.keys(check.orgN).forEach(key => {
-            check.orgN[key] && tmp.orgN.push(key);
-        })
-
-        Object.keys(check.country).forEach(key => {
-            check.country[key] && tmp.country.push(key);
-        })
-        Object.keys(check.attendBizMatch).forEach(key => {
-            check.attendBizMatch[key] && tmp.attendBizMatch.push(key);
-        })
-
-        return tmp;
-    }
-
-    // initial fetch
-    const fetchEventData = async () => {
+    const fetchData = async (mode) => {
         try {
-            setFetching((pv) => ({
-                mainEvent: true,
-                lineAnalytics: true,
-                pieAnalytics: true,
-                atendees: true,
-                notifications: true,
-            }));
-            const ordinaryEventInformation: OrdinaryEvent =
-                await getOrdinaryEventInformation(
-                    router.query.slug as string,
-                    appData.acsTok
-                ).catch((e) => {
-                    throw new Error(e?.err);
-                });
+            if (mode === "attendees") {
+                dispatch(setFetching({
+                    ...ordEvData.fetchingStates,
+                    attendees: true,
+                }))
+            } else {
+                dispatch(setFetching({
+                    mainEvent: true,
+                    lineAnalytics: true,
+                    pieAnalytics: true,
+                    attendees: true,
+                    notifications: true,
+                }))
+            }
+            const req: any = await fetchEventData({
+                evId: router.query.slug as string,
+                accessToken: appData.acsTok,
+                requestLimit: ordEvData.requests.limit,
+                page: ordEvData.requests.page,
+                sortMethod: ordEvData.requests.sort.method,
+                sortOrder: ordEvData.requests.sort.order,
+                filter: ordEvData.requests.filter,
+                search: ordEvData.requests.search
+            })
 
-            setCurrEvent(ordinaryEventInformation);
 
-            const getOrdEventAnalyticsReq = await getOrdEventAnalytics(
-                process.env.NEXT_PUBLIC_API || "",
-                appData.acsTok,
-                ordinaryEventInformation.id,
-                ordinaryEventInformation.offset,
-                "rpd"
-            ).catch((e) => {
-                throw new Error(e?.err);
-            });
-            setRpdOrd(getOrdEventAnalyticsReq.data);
-
-            const getOrdRegistrationCount = await fetchAtendees(
-                "all",
-                ordinaryEventInformation.id,
-                appData.acsTok,
-                atnLimit,
-                1,
-                currentSortMethod.split("-")[0],
-                currentSortMethod.split("-")[1],
-                "",
-            ).catch((e) => {
-                throw new Error(e?.err);
-            });
-
-            setIoutOrd((pv) => ({
-                ...pv,
+            dispatch(setEvent(req.data.eventData))
+            dispatch(setLineChartData({
+                ...ordEvData.lineChartData,
+                labels: [...req.data.lineChartData.labels],
+                datasets: [{
+                    ...ordEvData.lineChartData.datasets[0],
+                    data: [...req.data.lineChartData.data]
+                }, {
+                    ...ordEvData.lineChartData.datasets[1],
+                    data: [...req.data.lineChartData.movingAvg]
+                }]
+            }))
+            dispatch(setPieChartData({
+                ...ordEvData.pieChartData,
                 datasets: [
                     {
-                        ...pv.datasets[0],
+                        ...ordEvData.pieChartData.datasets[0],
                         data: [
-                            getOrdRegistrationCount.data[0].stats.out,
-                            getOrdRegistrationCount.data[0].stats.in,
+                            req.data.pieChartData[1],
+                            req.data.pieChartData[0],
                         ],
                     },
                 ],
-            }));
-
-            setAttendees([...getOrdRegistrationCount.data[0].attendees]);
-            setFilterable(getOrdRegistrationCount.data[0].filterable)
-
-            const newCheck = {...check};
-
-            Object.entries(getOrdRegistrationCount.data[0].filterable).forEach(([key, values]) => {
-                const map = {};
-                values.forEach(value => {
-                    map[value] = true;
-                });
-                newCheck[key] = map;
-            });
-
-            setCheck(prev => ({
-                ...prev,
-                ...newCheck
-            }));
-
-
-            setAtnSize(getOrdRegistrationCount.data[0].stats.total);
-
-            setTimeout(() => {
-                setFetching((pv) => ({
+            }))
+            dispatch(setAttendees(req.data.attendees))
+            dispatch(setTotalAttendeeSize(req.data.querySizeResult))
+            dispatch(setTotalRegistered(req.data.totalRegistered))
+            if (mode === "attendees") {
+                dispatch(setFetching({
+                    ...ordEvData.fetchingStates,
+                    attendees: false,
+                }))
+            } else {
+                dispatch(setFetching({
                     mainEvent: false,
                     lineAnalytics: false,
                     pieAnalytics: false,
-                    atendees: false,
+                    attendees: false,
                     notifications: false,
-                }));
-            }, 500);
-            setRender(true);
-        } catch (e) {
-            setRender(false);
-            router.push("/dashboard");
-        }
-    };
-
-    // on manual click of the dedicated refresh button
-    const refetchAtendees = async () => {
-        setFetching((pv) => ({
-            ...pv,
-            lineAnalytics: true,
-            pieAnalytics: true,
-            atendees: true,
-        }));
-
-        try {
-            const getOrdEventAnalyticsReq = await getOrdEventAnalytics(
-                process.env.NEXT_PUBLIC_API || "",
-                appData.acsTok,
-                currEvent.id,
-                currEvent.offset,
-                "rpd"
-            ).catch((e) => {
-                throw new Error(e?.err);
-            });
-            setRpdOrd(getOrdEventAnalyticsReq.data);
-
-            const getOrdRegistrationCount = await fetchAtendees(
-                "all",
-                currEvent.id,
-                appData.acsTok,
-                atnLimit,
-                currPage,
-                currentSortMethod.split("-")[0],
-                currentSortMethod.split("-")[1],
-                search,
-                parseFilters()
-            ).catch((e) => {
-                throw new Error(e?.err);
-            });
-
-            setIoutOrd((pv) => ({
-                ...pv,
-                datasets: [
-                    {
-                        ...pv.datasets[0],
-                        data: [
-                            getOrdRegistrationCount.data[0].stats.out,
-                            getOrdRegistrationCount.data[0].stats.in,
-                        ],
-                    },
-                ],
-            }));
-
-            setAttendees([...getOrdRegistrationCount.data[0].attendees]);
-
-
-            // if there are is something on search, it means we are filtering the data and we expect filtered data
-            if (search) {
-                setAtnSize(getOrdRegistrationCount.data[0].stats.queryTotal);
-            } else {
-                setAtnSize(getOrdRegistrationCount.data[0].stats.total);
+                }))
             }
 
-            setFetching((pv) => ({
-                ...pv,
-                lineAnalytics: false,
-                pieAnalytics: false,
-                atendees: false,
-            }));
         } catch (e) {
-            router.push("/dashboard");
+
+            router.push("/dashboard")
         }
-    };
+    }
 
-    // function for refreshing the atendees thru search and sort
-    const refetchAtendeesSortSearch = async () => {
-        setFetching((pv) => ({
-            ...pv,
-            atendees: true,
-        }));
-
-        try {
-            const getOrdRegistrationCount = await fetchAtendees(
-                "all",
-                currEvent.id,
-                appData.acsTok,
-                atnLimit,
-                currPage,
-                currentSortMethod.split("-")[0],
-                currentSortMethod.split("-")[1],
-                search,
-                parseFilters()
-            ).catch((e) => {
-                throw new Error(e?.err);
-            });
-            setAttendees([...getOrdRegistrationCount.data[0].attendees]);
-
-            // atn size is dynamically set with reference to the query length, query is limited by the atnLim variable
-            setAtnSize(getOrdRegistrationCount.data[0].stats.queryTotal);
-
-            setFetching((pv) => ({
-                ...pv,
-                atendees: false,
-            }));
-        } catch (e) {
-            router.push("/dashboard");
-        }
-    };
-
-    useEffect(() => {
-        if (!currEvent.id || fetching.atendees) return;
-        const debounce = setTimeout(() => {
-            refetchAtendeesSortSearch();
-        }, 500);
-
-        return () => {
-            clearTimeout(debounce);
-        };
-    }, [currentSortMethod, search, currEvent.id, currPage, check, atnLimit]);
 
     useEffect(() => {
         if (!router.query.slug || !appData.acsTok) return;
-        fetchEventData();
+        const initial = async () => {
+            try {
+
+                dispatch(setFetching({
+                    mainEvent: true,
+                    lineAnalytics: true,
+                    pieAnalytics: true,
+                    attendees: true,
+                    notifications: true,
+                }))
+
+
+                const req: any = await fetchEventData({
+                    evId: router.query.slug as string,
+                    accessToken: appData.acsTok,
+                    requestLimit: ordEvData.requests.limit,
+                    page: ordEvData.requests.page,
+                    sortMethod: ordEvData.requests.sort.method,
+                    sortOrder: ordEvData.requests.sort.order,
+                    filter: ordEvData.requests.filter,
+                    search: ordEvData.requests.search
+                })
+                dispatch(setEvent(req.data.eventData))
+                dispatch(setLineChartData({
+                    ...ordEvData.lineChartData,
+                    labels: [...req.data.lineChartData.labels],
+                    datasets: [{
+                        ...ordEvData.lineChartData.datasets[0],
+                        data: [...req.data.lineChartData.data]
+                    }, {
+                        ...ordEvData.lineChartData.datasets[1],
+                        data: [...req.data.lineChartData.movingAvg]
+                    }]
+                }))
+
+                dispatch(setPieChartData({
+                    ...ordEvData.pieChartData,
+                    datasets: [
+                        {
+                            ...ordEvData.pieChartData.datasets[0],
+                            data: [
+                                req.data.pieChartData[1],
+                                req.data.pieChartData[0],
+                            ],
+                        },
+                    ],
+                }))
+                dispatch(setAttendees(req.data.attendees))
+                dispatch(setTotalAttendeeSize(req.data.querySizeResult))
+                dispatch(setTotalRegistered(req.data.totalRegistered))
+                dispatch(setFilters({
+                    ...ordEvData.requests.filter,
+                    extras: req.data.filters
+                }))
+
+
+                dispatch(setFetching({
+                    mainEvent: false,
+                    lineAnalytics: false,
+                    pieAnalytics: false,
+                    attendees: false,
+                    notifications: false,
+                }))
+                dispatch(setInitialized(true))
+
+            } catch (e) {
+
+                router.push("/dashboard")
+            }
+        }
+        initial()
+
+        return () => {
+            dispatch(resetOrdinaryEvent())
+        }
     }, [router.query.slug, appData.acsTok]);
 
     if (!render) return <></>;
@@ -445,13 +238,13 @@ export default function ViewEvent() {
             </Head>
 
             <QRCode
-                ev={currEvent.name}
-                active={qrScanner}
+                ev={ordEvData.eventData.name}
+                active={ordEvData.qrScanner}
                 onExit={() => {
-                    setQrScanner(false);
+                    dispatch(setQrScanner(false))
                 }}
                 onSuccessPulse={() => {
-                    refetchAtendees();
+                    fetchData("attendees")
                 }}
                 onFailPulse={() => {
                 }}
@@ -506,9 +299,9 @@ export default function ViewEvent() {
                                 <Boxes size="18px" strokeWidth={1.5}/> Events{" "}
                                 <ChevronRight className="text-neutral-600"/>{" "}
                                 <p className="font-[500]">
-                                    {fetching.mainEvent
+                                    {ordEvData.fetchingStates.mainEvent
                                         ? "Getting event information..."
-                                        : currEvent.name}
+                                        : ordEvData.eventData.name}
                                 </p>
                             </h1>
                         </div>
@@ -530,18 +323,21 @@ export default function ViewEvent() {
                             </li>
                             <li
                                 onClick={() => {
-                                    modal.info(
-                                        "Unavailable",
-                                        "This feature is still in development, please wait for the next version of Eventra.",
-                                        () => {
+                                    modal.hide();
+                                    modal.show({
+                                        type: "std",
+                                        title: "Unavailable",
+                                        description: "This feature is still in development, please wait for the next version of Eventra.",
+                                        onConfirm: () => {
+                                            modal.hide();
+
                                         },
-                                        () => {
-                                        },
-                                        "Okay",
-                                        "",
-                                        <AlertTriangle/>,
-                                        "initial"
-                                    );
+
+                                        confirmText: "OK",
+
+                                        icon: <X/>,
+                                        color: "error",
+                                    })
                                 }}
                                 className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
                             >
@@ -550,7 +346,7 @@ export default function ViewEvent() {
                             </li>
 
                             <li
-                                onClick={() => setQrScanner(true)}
+                                onClick={() => dispatch(setQrScanner(true))}
                                 className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
                             >
                                 <QrCode size="18px"/>
@@ -561,18 +357,21 @@ export default function ViewEvent() {
                         <ul className="flex flex-col gap-2 pt-5 border-t-2 border-neutral-200 px-3 ">
                             <li
                                 onClick={() => {
-                                    modal.info(
-                                        "Unavailable",
-                                        "This feature is still in development, please wait for the next version of Eventra.",
-                                        () => {
+                                    modal.hide();
+                                    modal.show({
+                                        type: "std",
+                                        title: "Disabled by Eventra",
+                                        description: "This feature is currently disabled. You currently using v1.7 of Eventra.",
+                                        onConfirm: () => {
+                                            modal.hide();
+
                                         },
-                                        () => {
-                                        },
-                                        "Okay",
-                                        "",
-                                        <AlertTriangle/>,
-                                        "initial"
-                                    );
+
+                                        confirmText: "OK",
+
+                                        icon: <X/>,
+                                        color: "error",
+                                    })
                                 }}
                                 className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
                             >
@@ -589,60 +388,60 @@ export default function ViewEvent() {
                             <div className="grid grid-cols-3 gap-2">
                                 <div
                                     className="relative h-[250px] p-5 col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md geist overflow-hidden">
-                                    {!fetching.mainEvent && (
+                                    {!ordEvData.fetchingStates.mainEvent && (
                                         <>
                                             <div className="relative z-[2]">
-                                                {currEvent.status === "Upcoming" ? (
+                                                {ordEvData.eventData.status === "Upcoming" ? (
                                                     <div className="text-white flex items-center gap-3 text-xs">
                                                         <div
                                                             className="circle h-[12px] w-[12px] rounded-full bg-yellow-600"></div>
-                                                        {currEvent.status}
+                                                        {ordEvData.eventData.status}
                                                     </div>
-                                                ) : currEvent.status === "Ongoing" ? (
+                                                ) : ordEvData.eventData.status === "Ongoing" ? (
                                                     <div className="text-white flex items-center gap-3 text-xs">
                                                         <div
                                                             className="circle h-[12px] w-[12px] rounded-full bg-emerald-600"></div>
-                                                        {currEvent.status}
+                                                        {ordEvData.eventData.status}
                                                     </div>
                                                 ) : (
                                                     <div className="text-white flex items-center gap-3 text-xs">
                                                         <div
                                                             className="circle h-[12px] w-[12px] rounded-full bg-red-600"></div>
-                                                        {currEvent.status}
+                                                        {ordEvData.eventData.status}
                                                     </div>
                                                 )}
                                                 <h1 className="text-2xl text-white font-[500] mt-1">
-                                                    {currEvent.name}
+                                                    {ordEvData.eventData.name}
                                                 </h1>
                                                 <p className="text-neutral-100 text-sm">
                                                     {moment
-                                                        .unix(currEvent.date)
-                                                        .utcOffset(currEvent.offset * -1)
+                                                        .unix(ordEvData.eventData.date)
+                                                        .utcOffset(ordEvData.eventData.offset * -1)
                                                         .format("dddd, MMM DD, YYYY")}{" "}
                                                     :{" "}
                                                     {moment
-                                                        .unix(currEvent.startT)
-                                                        .utcOffset(currEvent.offset * -1)
+                                                        .unix(ordEvData.eventData.startT)
+                                                        .utcOffset(ordEvData.eventData.offset * -1)
                                                         .format("hh:mm A")}
                                                     {" - "}
                                                     {moment
-                                                        .unix(currEvent.endT)
-                                                        .utcOffset(currEvent.offset * -1)
+                                                        .unix(ordEvData.eventData.endT)
+                                                        .utcOffset(ordEvData.eventData.offset * -1)
                                                         .format("hh:mm A")}
                                                     {" / "}
-                                                    {currEvent.location}
+                                                    {ordEvData.eventData.location}
                                                 </p>
                                                 <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
                                                     <Users size="15px"/> Capacity:{" "}
-                                                    {currEvent.attendeeLim} atendees
+                                                    {ordEvData.eventData.attendeeLim} atendees
                                                 </p>
-                                                {currEvent.allowWalkIn && (
+                                                {ordEvData.eventData.allowWalkIn && (
                                                     <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
                                                         <CircleCheck size="15px"/> Walk-in is allowed.
                                                     </p>
                                                 )}
 
-                                                {!currEvent.allowWalkIn && (
+                                                {!ordEvData.eventData.allowWalkIn && (
                                                     <p className="text-neutral-100 text-sm flex items-center gap-2 mt-2">
                                                         <CircleX size="15px"/> Walk-in is not allowed.
                                                     </p>
@@ -650,14 +449,14 @@ export default function ViewEvent() {
                                             </div>
                                             <div className="absolute top-0 right-0 w-full h-full z-[1]">
                                                 <img
-                                                    src={currEvent.coverFile}
+                                                    src={ordEvData.eventData.coverFile}
                                                     alt=""
                                                     className="h-full w-full object-cover brightness-30"
                                                 />
                                             </div>
                                         </>
                                     )}
-                                    {fetching.mainEvent && (
+                                    {ordEvData.fetchingStates.mainEvent && (
                                         <div className="grid place-content-center h-full w-full">
                                             <div className="flex items-center gap-2">
                                                 <CircularProgress
@@ -675,45 +474,21 @@ export default function ViewEvent() {
                                 <div
                                     className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
                                     <OrdEvRegLineAnalytics
-                                        isFetching={fetching.lineAnalytics}
-                                        data={rpdOrd}
+                                        isFetching={ordEvData.fetchingStates.lineAnalytics}
+                                        data={ordEvData.lineChartData}
                                     />
                                 </div>
                                 <div
                                     className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
                                     <OrdEvRegPieAnalytics
-                                        isFetching={fetching.pieAnalytics}
-                                        data={ioutOrd}
+                                        isFetching={ordEvData.fetchingStates.pieAnalytics}
+                                        data={ordEvData.pieChartData}
                                     />
                                 </div>
 
                                 <div
                                     className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
-                                    <OrdEvAttendees
-                                        fetching={fetching.atendees}
-                                        data={attendees}
-                                        filterable={filterable}
-                                        evName={currEvent.name}
-                                        refetchAtendees={() => {
-                                            refetchAtendees();
-                                        }}
-                                        currentSortMethod={currentSortMethod} // current sort method
-                                        onChangeSortMethod={(st) => setCurrentSortMethod(st)} // change sort method
-                                        tableFilters={check}
-                                        setTableFilters={(st) => {
-
-                                            setCheck(st)
-                                        }}
-                                        reqLimit={atnLimit}
-                                        setReqLimit={(dx) => setAtnLimit(dx)}
-                                        search={search} // current search value
-                                        setSearch={(st) => setSearch(st)} // search bar callback change str
-                                        currPage={currPage} // pagination, current page
-                                        dataSize={atnSize} // pagination, how many attendees have been fetched?
-                                        limit={atnLimit} // pagination limit
-                                        onPageNumberClick={(d) => setCurrPage(d)} // refetch atendees on page number click, fetching is centralized to the parent for centralized loading
-                                        evId={currEvent.id}
-                                    />
+                                    <OrdEvAttendees/>
                                 </div>
                             </div>
                         </div>

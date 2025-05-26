@@ -212,28 +212,20 @@ export default function DataExportPopup({active, filters, cb, exit}) {
         attended: {
             in: true,
             out: true,
-        },
-        attendBizMatch: {
-            ys: true,
-            ym: true,
-            no: true,
-        },
+        }
     })
 
     // populate
     useEffect(() => {
         if (!filters) return;
 
-        const newCheck = {...check};
-
-        Object.entries(filters).forEach(([key, values]) => {
-            const map = {};
-            values.forEach(value => {
-                map[value] = true;
-            });
-            newCheck[key] = map;
-        });
-
+        const newCheck = {
+            attended: {
+                in: filters.attended[0],
+                out: filters.attended[1]
+            },
+            ...filters.extras
+        };
         setCheck(prev => ({
             ...prev,
             ...newCheck

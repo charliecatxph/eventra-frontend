@@ -1,10 +1,10 @@
-import {AlertTriangle, Boxes, LayoutDashboard, LineChart, Plus, Settings, Users,} from "lucide-react";
+import {Boxes, LayoutDashboard, Plus, Settings, Users,} from "lucide-react";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
-import {useSelector} from "react-redux";
+import {useDispatch, useSelector} from "react-redux";
 import {selectApp} from "@/features/appSlice";
 import {useSecureRoute} from "@/hooks/UseSecureRoute";
-import {useModal} from "@/hooks/useModal";
+import {useModal} from "@/components/Modal/ModalContext";
 import Head from "next/head";
 
 import {getEvents} from "@/functions/getEvents";
@@ -17,7 +17,18 @@ import OrdEvRegPieAnalytics from "@/components/Bento/OrdEvRegPieAnalytics";
 import AllEvents from "@/components/Bento/AllEvents";
 import {fetchAtendees} from "@/functions/getAtendees";
 import HighlightedBizMatchEvent from "@/components/Bento/HighlightedBizMatchEvent";
-import {BizMatchEvent, OrdinaryEvent} from "@/interfaces/Interface";
+import {
+    allEvents,
+    dashboardSlice,
+    setHighlightedBzEvent,
+    setHighlightedOrdEvent,
+    setInitialized,
+    setOrdLineChartData,
+    setOrdPieChartData
+} from "@/features/dashboardSlice";
+import {fetchBizEventAnalytics} from "@/functions/fetchBizEventAnalytics";
+import BizEvFirstBentoAnalytics from "@/components/Bento/BizEvFirstBentoAnalytics";
+import BizEvSecondBentoAnalytics from "@/components/Bento/BizEvSecondBentoAnalytics";
 
 interface PieChartData {
     labels: string[];
@@ -51,51 +62,14 @@ interface LineChartData {
 }
 
 export default function Dashboard() {
+    const dispatch = useDispatch();
+    const dashData = useSelector(dashboardSlice);
+
     const modal = useModal();
     const [fetching, setFetching] = useState<boolean>(true);
     const [render, setRender] = useState<boolean>(false);
     useSecureRoute(() => setRender(true));
     const appData = useSelector(selectApp);
-
-    const [highlightOrdEv, setHighlightOrdEv] = useState<OrdinaryEvent>();
-    const [highlightBizEv, setHighlightBizEv] = useState<BizMatchEvent>();
-
-    const [aEvsSpec, setAEvsSpec] = useState<(OrdinaryEvent | BizMatchEvent)[]>(
-        []
-    );
-
-    const [rpdOrd, setRpdOrd] = useState<LineChartData>({
-        labels: [],
-        datasets: [
-            {
-                label: "Registrations",
-                data: [],
-                borderColor: "oklch(55.8% 0.288 302.321)",
-
-                tension: 0.6,
-
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                pointBackgroundColor: "#fff",
-                pointHoverBackgroundColor: "#4338CA",
-                pointBorderColor: "#000",
-                pointHoverBorderColor: "#fff",
-            },
-        ],
-    });
-
-    const [ioutOrd, setIoutOrd] = useState<PieChartData>({
-        labels: ["Not in Event", "In Event"],
-        datasets: [
-            {
-                label: "Atendee",
-                data: [0, 0],
-                backgroundColor: ["rgba(231, 76, 60,0.2)", "rgba(52, 152, 219,0.2)"],
-                borderColor: ["rgba(231, 76, 60,1.0)", "rgba(52, 152, 219,1.0)"],
-                borderWidth: 1,
-            },
-        ],
-    });
 
     const router = useRouter();
 
@@ -123,6 +97,7 @@ export default function Dashboard() {
     };
 
     const initialFetch = async () => {
+        if (dashData.initialized) setFetching(false)
         try {
             const getEventsReq = await getEvents(
                 process.env.NEXT_PUBLIC_API || "",
@@ -132,12 +107,11 @@ export default function Dashboard() {
             });
             const shwlx = [...getEventsReq.data.ord, ...getEventsReq.data.bz];
             shwlx.sort((a, b) => b.endT - a.endT);
-            setAEvsSpec(shwlx);
 
             const h_ord = getHighlightEvent([...getEventsReq.data.ord]);
             const b_ord = getHighlightEvent([...getEventsReq.data.bz]);
 
-            if (h_ord) {
+            if (h_ord) { // only get analytics if there is a highlighted event
                 const getOrdEventAnalyticsReq = await getOrdEventAnalytics(
                     process.env.NEXT_PUBLIC_API || "",
                     appData.acsTok,
@@ -147,7 +121,19 @@ export default function Dashboard() {
                 ).catch((e) => {
                     throw new Error(e?.err);
                 });
-                setRpdOrd(getOrdEventAnalyticsReq.data);
+
+
+                dispatch(setOrdLineChartData({
+                    ...dashData.ordLineChartData,
+                    labels: [...getOrdEventAnalyticsReq.data.labels],
+                    datasets: [{
+                        ...dashData.ordLineChartData.datasets[0],
+                        data: [...getOrdEventAnalyticsReq.data.data]
+                    }, {
+                        ...dashData.ordLineChartData.datasets[1],
+                        data: [...getOrdEventAnalyticsReq.data.movingAvg]
+                    }]
+                }))
 
                 const getOrdRegistrationCount = await fetchAtendees(
                     "count",
@@ -157,26 +143,41 @@ export default function Dashboard() {
                     throw new Error(e?.err);
                 });
 
-                setIoutOrd((pv) => ({
-                    ...pv,
-                    datasets: [
-                        {
-                            ...pv.datasets[0],
-                            data: [
-                                getOrdRegistrationCount.data.out,
-                                getOrdRegistrationCount.data.in,
-                            ],
-                        },
-                    ],
-                }));
+                dispatch(setOrdPieChartData({
+                    ...dashData.ordPieChartData,
+                    datasets: [{
+                        ...dashData.ordPieChartData.datasets[0],
+                        data: [getOrdRegistrationCount.data.out, getOrdRegistrationCount.data.in]
+                    }]
+                }))
+
             }
 
-            setHighlightOrdEv(h_ord);
-            setHighlightBizEv(b_ord);
+            dispatch(setHighlightedOrdEvent(h_ord))
 
-            setTimeout(() => {
-                setFetching(false);
-            }, 1000);
+            dispatch(allEvents(shwlx))
+
+            let objTmp = {
+                ...b_ord
+            }
+            if (b_ord) {
+
+                const req = await fetchBizEventAnalytics(b_ord.id, appData.acsTok).catch((e) => {
+                    throw new Error(e?.err);
+                });
+
+                objTmp.stats = {
+                    ...req.data.data.data
+                }
+
+            }
+
+            dispatch(setHighlightedBzEvent(objTmp))
+
+
+            setFetching(false);
+            dispatch(setInitialized(true))
+
         } catch (e) {
             console.log(e);
         }
@@ -186,6 +187,8 @@ export default function Dashboard() {
         if (appData.acsTok) {
             initialFetch();
         }
+
+
     }, [appData.acsTok]);
 
     if (!render) return <></>;
@@ -278,18 +281,7 @@ export default function Dashboard() {
                         <ul className="flex flex-col gap-2 pt-5 border-t-2 border-neutral-200 px-3 ">
                             <li
                                 onClick={() => {
-                                    modal.info(
-                                        "Unavailable",
-                                        "This feature is still in development, please wait for the next version of Eventra.",
-                                        () => {
-                                        },
-                                        () => {
-                                        },
-                                        "Okay",
-                                        "",
-                                        <AlertTriangle/>,
-                                        "initial"
-                                    );
+
                                 }}
                                 className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center"
                             >
@@ -308,47 +300,39 @@ export default function Dashboard() {
                                     className="h-[250px] bg-white shadow-sm shadow-neutral-50 rounded-md geist overflow-hidden">
                                     <HighlightedOrdinaryEvent
                                         isFetching={fetching}
-                                        data={highlightOrdEv}
+                                        data={dashData.highlightedOrdinaryEvent}
                                     />
                                 </div>
                                 <div
                                     className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                                    <OrdEvRegLineAnalytics isFetching={fetching} data={rpdOrd}/>
+                                    <OrdEvRegLineAnalytics isFetching={fetching} data={dashData.ordLineChartData}/>
                                 </div>
                                 <div
                                     className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                                    <OrdEvRegPieAnalytics isFetching={fetching} data={ioutOrd}/>
+                                    <OrdEvRegPieAnalytics isFetching={fetching} data={dashData.ordPieChartData}/>
                                 </div>
                                 <div
                                     className="h-[250px] bg-[#212121] shadow-sm shadow-neutral-50 rounded-md oveflow-hidden">
                                     <HighlightedBizMatchEvent
                                         isFetching={fetching}
-                                        data={highlightBizEv}
+                                        data={dashData.highlightedBzEvent}
                                     />
+
                                 </div>
                                 <div
                                     className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                                    <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
-                                        <Users size="15px" strokeWidth={2}/>
-                                        In Event / Not In Event (BizMatch)
-                                    </h1>
+                                    <BizEvFirstBentoAnalytics isFetching={fetching}
+                                                              data={dashData.highlightedBzEvent.stats}/>
                                 </div>
 
                                 <div
                                     className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                                    <div className="flex flex-col h-full">
-                                        <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
-                                            <LineChart size="15px" strokeWidth={2}/>
-                                            Client to Supplier Show-Up Avg. Rate (%)
-                                        </h1>
-                                        <div className="flex-1 grid place-content-center">
-                                            <h1 className="font-[600] text-8xl">--</h1>
-                                        </div>
-                                    </div>
+                                    <BizEvSecondBentoAnalytics isFetching={fetching}
+                                                               data={dashData.highlightedBzEvent.stats}/>
                                 </div>
                                 <div
                                     className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
-                                    <AllEvents isFetching={fetching} data={aEvsSpec}/>
+                                    <AllEvents isFetching={fetching} data={dashData.allEvents}/>
                                 </div>
                             </div>
                         </div>

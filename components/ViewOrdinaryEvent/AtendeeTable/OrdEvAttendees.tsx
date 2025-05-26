@@ -1,11 +1,10 @@
 import {selectApp} from "@/features/appSlice";
 import {useModal} from "@/components/Modal/ModalContext";
-import {useModal as useOldModal} from "@/hooks/useModal";
 import {CircularProgress} from "@mui/material";
 import axios from "axios";
 import {
     Briefcase,
-    Check, ChevronDown,
+    Check,
     Download,
     Eye,
     FileQuestion,
@@ -21,17 +20,32 @@ import {
     X,
 } from "lucide-react";
 import moment from "moment";
-import {useEffect, useState} from "react";
-import {useSelector} from "react-redux";
+import {useEffect, useRef, useState} from "react";
+import {useDispatch, useSelector} from "react-redux";
 import {printQR} from "../../ViewEv_Deps/printQr";
 import type {AttendeeOrdSPCAdmin, EditAttendee as EditAttendeeStruct} from "@/interfaces/Interface"
-import {Atendee} from "@/interfaces/Interface";
 import SortButton from "./SortButton";
 import EventraPagination from "./Pagination";
 import Link from "next/link";
 import EditAttendee from "@/components/ViewOrdinaryEvent/AtendeeTable/EditAttendee";
 import ViewAttendee from "@/components/ViewOrdinaryEvent/AtendeeTable/ViewAttendee";
 import DataExportPopup from "@/components/ViewOrdinaryEvent/AtendeeTable/DataExportPopup";
+import {
+    ordinaryEventData,
+    setAttendees,
+    setEvent,
+    setFetching,
+    setLineChartData,
+    setPageNumber,
+    setPieChartData,
+    setRequestLimit,
+    setSearchQuery,
+    setTotalAttendeeSize,
+    setTotalRegistered
+} from "@/features/ordinaryEventSlice";
+import {useRouter} from "next/router";
+import {AnimatePresence, motion} from 'framer-motion'
+import fetchEventData from "@/functions/fetchEventData";
 
 const countriesKV = {
     AF: "Afghanistan",
@@ -277,49 +291,11 @@ const setEditAttendeeDef: EditAttendeeStruct = {
 };
 
 
-interface OrdEvAttendeesParameters {
-    fetching: boolean;
-    data: Atendee[];
-    filterable: any,
-    evName: string;
-    search: string;
-    setSearch: (d: string) => void;
-    currentSortMethod: string;
-    onChangeSortMethod: (d: string) => void;
-    tableFilters: any;
-    setTableFilters: (d: any) => void;
-    reqLimit: number;
-    setReqLimit: (d: any) => void;
-    refetchAtendees: () => void;
-    dataSize: number;
-    limit: number;
-    currPage: number;
-    onPageNumberClick: (d: number) => void;
-    evId: string;
-}
-
-export default function OrdEvAttendees({
-                                           fetching,
-                                           data,
-                                           filterable,
-                                           evName,
-                                           search,
-                                           setSearch,
-                                           currentSortMethod,
-                                           onChangeSortMethod,
-                                           tableFilters,
-                                           setTableFilters,
-    reqLimit,
-    setReqLimit,
-                                           refetchAtendees,
-                                           dataSize,
-                                           limit,
-                                           currPage,
-                                           onPageNumberClick,
-                                           evId,
-                                       }: OrdEvAttendeesParameters) {
+export default function OrdEvAttendees() {
+    const router = useRouter()
+    const dispatch = useDispatch();
+    const ordEvData = useSelector(ordinaryEventData)
     const modal = useModal();
-    const oldModalSys = useOldModal();
     const appData = useSelector(selectApp);
 
     const [editAttendee, setEditAttendee] = useState<EditAttendeeStruct>({
@@ -380,7 +356,82 @@ export default function OrdEvAttendees({
         evId: "",
     });
     const [exportData, setExportData] = useState<boolean>(false)
-    const [tbSettings, setTbSettings] = useState<boolean>(false)
+
+    const fetchData = async (mode) => {
+        try {
+            if (mode === "attendees") {
+                dispatch(setFetching({
+                    ...ordEvData.fetchingStates,
+                    attendees: true,
+                }))
+            } else {
+                dispatch(setFetching({
+                    mainEvent: true,
+                    lineAnalytics: true,
+                    pieAnalytics: true,
+                    attendees: true,
+                    notifications: true,
+                }))
+            }
+            const req: any = await fetchEventData({
+                evId: router.query.slug as string,
+                accessToken: appData.acsTok,
+                requestLimit: ordEvData.requests.limit,
+                page: ordEvData.requests.page,
+                sortMethod: ordEvData.requests.sort.method,
+                sortOrder: ordEvData.requests.sort.order,
+                filter: ordEvData.requests.filter,
+                search: ordEvData.requests.search
+            })
+
+
+            dispatch(setEvent(req.data.eventData))
+            dispatch(setLineChartData({
+                ...ordEvData.lineChartData,
+                labels: [...req.data.lineChartData.labels],
+                datasets: [{
+                    ...ordEvData.lineChartData.datasets[0],
+                    data: [...req.data.lineChartData.data]
+                }, {
+                    ...ordEvData.lineChartData.datasets[1],
+                    data: [...req.data.lineChartData.movingAvg]
+                }]
+            }))
+            dispatch(setPieChartData({
+                ...ordEvData.pieChartData,
+                datasets: [
+                    {
+                        ...ordEvData.pieChartData.datasets[0],
+                        data: [
+                            req.data.pieChartData[1],
+                            req.data.pieChartData[0],
+                        ],
+                    },
+                ],
+            }))
+            dispatch(setAttendees(req.data.attendees))
+            dispatch(setTotalAttendeeSize(req.data.querySizeResult))
+            dispatch(setTotalRegistered(req.data.totalRegistered))
+            if (mode === "attendees") {
+                dispatch(setFetching({
+                    ...ordEvData.fetchingStates,
+                    attendees: false,
+                }))
+            } else {
+                dispatch(setFetching({
+                    mainEvent: false,
+                    lineAnalytics: false,
+                    pieAnalytics: false,
+                    attendees: false,
+                    notifications: false,
+                }))
+            }
+
+        } catch (e) {
+
+            router.push("/dashboard")
+        }
+    }
 
     const deleteAtendee = (id: string, qrId: string): Promise<any> => {
         const cacheId = id;
@@ -409,14 +460,14 @@ export default function OrdEvAttendees({
     const handleDeleteAtendee = (id: string, name: string, qrId: string) => {
         modal.show({
             type: "std",
-            title: "Atendee Deletion",
+            title: "Attendee Deletion",
             description: `Confirm delete ${name}? ${name}'s Eventra Passport will be invalid, and data can't be recovered.`,
             onConfirm: async () => {
                 modal.hide();
 
                 modal.show({
                     type: "loading",
-                    title: "Deleting atendee...",
+                    title: "Deleting attendee...",
                     color: "neutral",
                 });
                 try {
@@ -428,7 +479,7 @@ export default function OrdEvAttendees({
                         description: "Your attendee has been deleted.",
                         onConfirm: () => {
                             modal.hide();
-                            refetchAtendees();
+                            fetchData("attendees")
                         },
 
                         confirmText: "Exit",
@@ -439,8 +490,8 @@ export default function OrdEvAttendees({
                     modal.hide();
                     modal.show({
                         type: "std",
-                        title: "Fail to delete atendee.",
-                        description: "We can't delete your atendee. Please try again.",
+                        title: "Fail to delete attendee.",
+                        description: "We can't delete your attendee. Please try again.",
                         onConfirm: () => {
                             modal.hide();
                         },
@@ -539,42 +590,67 @@ export default function OrdEvAttendees({
             });
         };
 
-        oldModalSys.promise(
-            <FileQuestion/>,
-            "Confirm Atendee Update",
-            `Update this atendee? Previous data won't be saved.`,
-            () => {
+        modal.hide();
+        modal.show({
+            type: "std",
+            title: "Confirm Attendee Update",
+            description: "Update this attendee? Previous data won't be saved.",
+            onConfirm: async () => {
+                modal.hide();
+                modal.show({
+                    type: "loading",
+                    title: "Updating attendee...",
+                    color: "neutral"
+                })
+                req().then(d => {
+                    modal.hide();
+                    modal.show({
+                        type: "std",
+                        title: "Update complete",
+                        description: "Your attendee has been updated.",
+                        onConfirm: async () => {
+                            modal.hide();
+                            setEditAttendee(setEditAttendeeDef);
+                            fetchData("attendees")
+                        },
+
+                        confirmText: "Proceed",
+
+                        icon: <Check/>,
+                        color: "success",
+                    })
+                }).catch(e => {
+                    modal.hide();
+                    modal.show({
+                        type: "std",
+                        title: "Fail",
+                        description: "We have failed to update your attendee.",
+                        onConfirm: async () => {
+                            modal.hide();
+                            updateEditedAttendee();
+
+                        },
+                        onCancel: () => {
+                            modal.hide()
+                            setEditAttendee(setEditAttendeeDef);
+                        },
+                        confirmText: "Try Again",
+                        cancelText: "Exit",
+                        icon: <X/>,
+                        color: "error",
+                    })
+                })
             },
-            () => {
+            onCancel: () => {
+                modal.hide()
             },
-            "Update",
-            "Cancel",
-            () => req(),
-            "Updating atendee...",
-            <Check/>,
-            "Update complete",
-            "Your atendee has been updated.",
-            () => {
-                setEditAttendee(setEditAttendeeDef);
-                refetchAtendees();
-            },
-            () => {
-                setEditAttendee(setEditAttendeeDef);
-            },
-            "Proceed",
-            "",
-            <X/>,
-            "Fail",
-            "We have failed to update your atendee.",
-            () => {
-                updateEditedAttendee();
-            },
-            () => {
-                setEditAttendee(setEditAttendeeDef);
-            },
-            "Try again",
-            "Exit"
-        );
+            confirmText: "Apply Changes",
+            cancelText: "Cancel",
+            icon: <FileQuestion/>,
+            color: "success",
+        })
+
+
     };
 
     const resendEmail = (id: string) => {
@@ -605,66 +681,89 @@ export default function OrdEvAttendees({
                 }
             });
         };
-        oldModalSys.close();
 
-        oldModalSys.promise(
-            <Mail/>,
-            "Resend Email?",
-            `Confirm to resend e-mail confirmation?`,
-            () => {
+        modal.hide();
+        modal.show({
+            type: "std",
+            title: "Resend E-Mail",
+            description: "Confirm to resend e-mail confirmation?",
+            onConfirm: async () => {
+                modal.hide();
+                modal.show({
+                    type: "loading",
+                    title: "Sending e-mail confirmation...",
+                    color: "neutral"
+                })
+                req().then(d => {
+                    modal.hide();
+                    modal.show({
+                        type: "std",
+                        title: "Confirmation E-Mail sent",
+                        description: "Your attendee has been sent a confirmation e-mail.",
+                        onConfirm: async () => {
+                            modal.hide();
+                            setViewAttendee({
+                                active: false,
+                                attended: false,
+                                name: "",
+                                orgN: "",
+                                orgP: "",
+                                email: "",
+                                phoneNumber: "",
+                                addr: "",
+                                salutations: "",
+                                registeredOn: 0,
+                                id: "",
+                            });
+                        },
+
+                        confirmText: "Exit",
+
+                        icon: <Check/>,
+                        color: "success",
+                    })
+                }).catch(e => {
+                    modal.hide();
+                    modal.show({
+                        type: "std",
+                        title: "Fail",
+                        description: "We have failed to send your attendee a confirmation e-mail.",
+                        onConfirm: async () => {
+                            modal.hide();
+                            resendEmail(viewAttendee.id as string);
+
+                        },
+                        onCancel: () => {
+                            modal.hide()
+                            setViewAttendee({
+                                active: false,
+                                attended: false,
+                                name: "",
+                                orgN: "",
+                                orgP: "",
+                                email: "",
+                                phoneNumber: "",
+                                addr: "",
+                                salutations: "",
+                                registeredOn: 0,
+                                id: "",
+                            });
+                        },
+                        confirmText: "Try Again",
+                        cancelText: "Exit",
+                        icon: <X/>,
+                        color: "error",
+                    })
+                })
             },
-            () => {
+            onCancel: () => {
+                modal.hide()
             },
-            "Send E-Mail",
-            "Cancel",
-            () => req(),
-            "Resending E-Mail confirmation...",
-            <Check/>,
-            "Confirmation E-Mail sent",
-            "Your atendee has been sent a confirmation e-mail.",
-            () => {
-                setViewAttendee({
-                    active: false,
-                    attended: false,
-                    name: "",
-                    orgN: "",
-                    orgP: "",
-                    email: "",
-                    number: "",
-                    addr: "",
-                    salutation: "",
-                    registeredAt: 0,
-                    id: "",
-                });
-            },
-            () => {
-            },
-            "Proceed",
-            "",
-            <X/>,
-            "Fail",
-            "We have failed to send your attendee a confirmation e-mail.",
-            () => {
-                resendEmail(viewAttendee.id);
-            },
-            () => {
-                setViewAttendee({
-                    active: false,
-                    attended: false,
-                    name: "",
-                    orgN: "",
-                    orgP: "",
-                    email: "",
-                    number: "",
-                    addr: "",
-                    salutation: "",
-                    registeredAt: 0,
-                    id: "",
-                });
-            },
-            "Try again",
-            "Exit"
-        );
+            confirmText: "Send E-Mail",
+            cancelText: "Cancel",
+            icon: <Mail/>,
+            color: "success",
+        })
     };
 
     const handleDataExport = async (sort: any, filter: any) => {
@@ -682,7 +781,7 @@ export default function OrdEvAttendees({
                 .post(
                     `${process.env.NEXT_PUBLIC_API}/download-xlsx-ord`,
                     {
-                        evId: evId,
+                        evId: ordEvData.eventData.id,
                         sort: sort,
                         filter: filter,
                     },
@@ -720,6 +819,7 @@ export default function OrdEvAttendees({
             link.click();
 
         } catch (e: any) {
+
             modal.hide();
             modal.show({
                 type: "std",
@@ -744,24 +844,48 @@ export default function OrdEvAttendees({
     };
 
 
+    const hasInit = useRef<boolean>(false);
+
     useEffect(() => {
-        onPageNumberClick(1)
-    }, [search]);
+        if (!ordEvData.initialized) return;
+
+        if (!hasInit.current) {
+            hasInit.current = true;
+            return;
+        }
+
+        const debounce = setTimeout(() => {
+            fetchData("attendees")
+        }, 500);
+
+        return () => {
+            clearTimeout(debounce);
+        };
+    }, [JSON.stringify(ordEvData.requests), ordEvData.initialized]); // listens for changes in the requests key
+
+
+    useEffect(() => {
+        dispatch(setPageNumber(1))
+    }, [JSON.stringify({
+        ...ordEvData.requests.filter,
+        ...ordEvData.requests.sort,
+        search: ordEvData.requests.search
+    })]);
     return (
         <>
 
-            <DataExportPopup active={exportData} exit={() => setExportData(false)} filters={filterable}
+            <DataExportPopup active={exportData} exit={() => setExportData(false)} filters={ordEvData.requests.filter}
                              cb={(d, x) => handleDataExport(d, x)}/>
             <ViewAttendee values={{
                 ...viewAttendee,
-                evId: evId,
+                evId: ordEvData.eventData.id,
             }} setValues={(d) => {
                 setViewAttendee({...d});
             }} resendEmailCb={(d) => resendEmail(d)}/>
             <EditAttendee values={editAttendee} setValues={(d) => setEditAttendee({...d})}
                           callback={() => updateEditedAttendee()}/>
             <div>
-                <div className="flex justify-between items-center">
+                {ordEvData.initialized && <div className="flex justify-between items-center">
                     <h1 className=" font-[500] text-sm">Attendees</h1>
                     <div className="flex gap-2 items-center">
                         <div className="search flex relative items-center">
@@ -773,16 +897,16 @@ export default function OrdEvAttendees({
                                 type="text"
                                 placeholder="Find an atendee..."
                                 onInput={(d) => {
-                                    setSearch((d.target as HTMLInputElement).value);
+                                    dispatch(setSearchQuery((d.target as HTMLInputElement).value))
                                 }}
-                                value={search}
-                                className="text-xs w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
+                                value={ordEvData.requests.search}
+                                className="text-xs w-full border-1 rounded-lg py-1.5 px-3  border-neutral-200  focus:outline-none focus:ring-2 focus:ring-emerald-700 ring-offset-4"
                             />
                         </div>
                         <div>
                             <select
-                                onChange={(e) => setReqLimit(parseInt(e.target.value))}
-                                value={reqLimit.toString()}
+                                onChange={(e) => dispatch(setRequestLimit(e.target.value))}
+                                value={ordEvData.requests.limit.toString()}
                                 className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-3 py-1.5 text-black flex items-center gap-2 rounded-md"
                             >
                                 <option value="10">Limit to 10</option>
@@ -792,7 +916,9 @@ export default function OrdEvAttendees({
                         </div>
                         <div>
                             <button
-                                onClick={() => refetchAtendees()}
+                                onClick={() => {
+                                    fetchData("attendees")
+                                }}
                                 className="text-xs bg-white hover:bg-neutral-50 border-1 border-neutral-200 px-3 py-1.5 text-black flex items-center gap-2 rounded-md"
                             >
                                 <RefreshCcw size="15px"/> Refresh
@@ -800,10 +926,7 @@ export default function OrdEvAttendees({
                         </div>
 
                         <SortButton
-                            currentSortMethod={currentSortMethod}
-                            onChangeSortMethod={onChangeSortMethod}
-                            filters={tableFilters}
-                            setFilter={setTableFilters}
+
                         />
 
 
@@ -812,264 +935,290 @@ export default function OrdEvAttendees({
                                 onClick={() => {
                                     setExportData(true)
                                 }}
-                                className="text-xs bg-black hover:bg-neutral-800 font-[600] px-5 py-1.5 text-white flex items-center gap-2 rounded-md"
+                                className="text-xs bg-emerald-700 hover:bg-emerald-800 font-[600] px-5 py-1.5 text-white flex items-center gap-2 rounded-md"
                             >
                                 <Download size="15px"/> Export Data
                             </button>
                         </div>
                     </div>
-                </div>
-                {!fetching && (
+                </div>}
+                {!ordEvData.fetchingStates.attendees && (
                     <>
-                        {data.length === 0 && (
+                        {ordEvData.attendeeData.data.length === 0 && (
                             <p className="text-center mt-10">No attendees.</p>
                         )}
 
-                        {data.length !== 0 && (
-                            <>
-                                <div
-                                    className="h-[400px] atendee-table mt-5 rounded-lg overflow-hidden border-1 border-neutral-200 overflow-y-scroll">
-                                    <div className="relative overflow-x-scroll w-full">
-                                        <div
-                                            className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] bg-white font-[500] geist text-xs">
-                                            <div className="contents">
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    Attendee
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    Organization
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    Phone Number
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    Salutation
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    Country
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    Address
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    Registered On
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    BizMatch Status
-                                                </div>
-                                                <div className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
-                                                    In Event?
-                                                </div>
+                        <AnimatePresence>
+                            {ordEvData.attendeeData.data.length !== 0 && (
+                                <>
+                                    <div>
+                                        <motion.div initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}}
+                                                    key={1}
+                                                    className="h-[400px] atendee-table mt-5 rounded-lg overflow-hidden border-1 border-neutral-200 overflow-y-scroll">
+                                            <div className="relative overflow-x-scroll w-full">
                                                 <div
-                                                    className="p-3  font-[500] bg-neutral-100 whitespace-nowrap sticky right-0 z-10">
-                                                    Options
-                                                </div>
-                                            </div>
-
-                                            {data.map((d, i) => {
-                                                return (
-                                                    <div
-                                                        key={i}
-                                                        className="contents border-b-1 border-neutral-200 font-[500] geist text-xs"
-                                                    >
+                                                    className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] bg-white font-[500] geist text-xs">
+                                                    <div className="contents">
                                                         <div
-                                                            className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
-                                                            <p className="truncate">{d.name}</p>
-                                                            <Link href={`mailto:${d.email}`}>
-                                                                <p className="font-[400] text-neutral-800 truncate flex items-center gap-1">
-                                                                    {d.email}
-                                                                </p>
-                                                            </Link>
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            Attendee
                                                         </div>
                                                         <div
-                                                            className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
-                                                            <p>{d.orgN}</p>
-                                                            <p className="font-[400] text-neutral-800 flex items-center gap-1 truncate">
-                                                                <Briefcase size="12px" className="shrink-0"/>
-                                                                {d.orgP}
-                                                            </p>
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            Organization
                                                         </div>
-                                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                                            <p className="font-[400] flex gap-1 items-center truncate">
-                                                                <Phone size="12px" className="shrink-0"/>
-                                                                {d.phoneNumber}
-                                                            </p>
-                                                        </div>
-                                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                                            <p className="font-[400] flex gap-1 items-center truncate">
-                                                                <User size="12px" className="shrink-0"/>
-                                                                {d.salutations}
-                                                            </p>
-                                                        </div>
-                                                        <div className="px-5 py-2  flex items-center whitespace-nowrap">
-                                                            <p className="font-[400]">
-                                                                {countriesKV[d.country]}
-                                                            </p>
-                                                        </div>
-                                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                                            <p className="font-[400] flex gap-1 items-center truncate">
-                                                                <HomeIcon size="12px" className="shrink-0"/>
-                                                                {d.addr || "N/A"}
-                                                            </p>
-                                                        </div>
-                                                        <div className="px-5 py-2  flex items-center whitespace-nowrap">
-                                                            <p className="font-[400]">
-                                                                {moment
-                                                                    .unix(d.registeredOn)
-                                                                    .format("MMM DD, YYYY (hh:mm A)")}
-                                                            </p>
-                                                        </div>
-                                                        <div className="px-5 py-2  flex items-center whitespace-nowrap">
-                                                            <p className="font-[400]">
-                                                                {d.attendBizMatch === "ys" && (
-                                                                    <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
-                                                                        SURE
-                                                                    </p>
-                                                                )}
-                                                                {d.attendBizMatch === "ym" && (
-                                                                    <p className="text-[11px] px-4 py-1 bg-yellow-50 border-1 border-yellow-600 text-yellow-600 w-max rounded-full text-xs">
-                                                                        MAYBE
-                                                                    </p>
-                                                                )}
-                                                                {d.attendBizMatch === "no" && (
-                                                                    <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
-                                                                        NO
-                                                                    </p>
-                                                                )}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="px-5 py-2 flex items-center whitespace-nowrap">
-                                                            {d.attended && (
-                                                                <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
-                                                                    IN EVENT
-                                                                </p>
-                                                            )}
-                                                            {!d.attended && (
-                                                                <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
-                                                                    NOT IN EVENT
-                                                                </p>
-                                                            )}
-                                                        </div>
-
                                                         <div
-                                                            className="bg-white px-5 py-2 text-right flex items-center gap-2 justify-end sticky z-[10] right-0">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditAttendee({
-                                                                        active: true,
-                                                                        attended: {
-                                                                            err: "",
-                                                                            value: d.attended ? "true" : "false",
-                                                                        },
-                                                                        name: {
-                                                                            err: "",
-                                                                            value: d.name,
-                                                                        },
-                                                                        orgN: {
-                                                                            err: "",
-                                                                            value: d.orgN,
-                                                                        },
-                                                                        orgP: {
-                                                                            err: "",
-                                                                            value: d.orgP,
-                                                                        },
-                                                                        email: {
-                                                                            err: "",
-                                                                            value: d.email,
-                                                                        },
-                                                                        number: {
-                                                                            err: "",
-                                                                            value: d.phoneNumber,
-                                                                        },
-                                                                        addr: {
-                                                                            err: "",
-                                                                            value: d.addr,
-                                                                        },
-                                                                        salutation: {
-                                                                            err: "",
-                                                                            value: d.salutations,
-                                                                        },
-                                                                        attendBizMatch: {
-                                                                            err: "",
-                                                                            value: d.attendBizMatch,
-                                                                        },
-                                                                        country: {
-                                                                            err: "",
-                                                                            value: d.country,
-                                                                        },
-                                                                        id: d.id,
-                                                                    });
-                                                                }}
-                                                                className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                                            >
-                                                                <Pencil size="15px"/>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setViewAttendee({
-                                                                        active: true,
-                                                                        attended: d.attended,
-                                                                        name: d.name,
-                                                                        orgN: d.orgN,
-                                                                        orgP: d.orgP,
-                                                                        email: d.email,
-                                                                        phoneNumber: d.phoneNumber,
-                                                                        addr: d.addr,
-                                                                        salutations: d.salutations,
-                                                                        registeredOn: d.registeredOn,
-                                                                        id: d.id,
-                                                                    });
-                                                                }}
-                                                                className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                                            >
-                                                                <Eye size="15px"/>
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    printQR({
-                                                                        eventName: evName,
-                                                                        attendeeName: d.name,
-                                                                        organization: d.orgN,
-                                                                        position: d.orgP,
-                                                                        identifier: d.id,
-                                                                    })
-                                                                }
-                                                                className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                                            >
-                                                                <Printer size="15px"/>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    handleDeleteAtendee(
-                                                                        d.id,
-                                                                        d.name,
-                                                                        d.public_id_qr
-                                                                    );
-                                                                }}
-                                                                className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                                            >
-                                                                <Trash size="15px"/>
-                                                            </button>
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            Phone Number
+                                                        </div>
+                                                        <div
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            Salutation
+                                                        </div>
+                                                        <div
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            Country
+                                                        </div>
+                                                        <div
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            Address
+                                                        </div>
+                                                        <div
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            Registered On
+                                                        </div>
+                                                        <div
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            BizMatch Status
+                                                        </div>
+                                                        <div
+                                                            className="p-3 font-[500] bg-neutral-100 whitespace-nowrap">
+                                                            In Event?
+                                                        </div>
+                                                        <div
+                                                            className="p-3  font-[500] bg-neutral-100 whitespace-nowrap sticky right-0 z-10">
+                                                            Options
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
+
+                                                    {ordEvData.attendeeData.data.map((d, i) => {
+                                                        return (
+                                                            <div
+                                                                key={i}
+                                                                className="contents border-b-1 border-neutral-200 font-[500] geist text-xs"
+                                                            >
+                                                                <div
+                                                                    className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
+                                                                    <p className="truncate">{d.name}</p>
+                                                                    <Link href={`mailto:${d.email}`}>
+                                                                        <p className="font-[400] text-neutral-800 truncate flex items-center gap-1">
+                                                                            {d.email}
+                                                                        </p>
+                                                                    </Link>
+                                                                </div>
+                                                                <div
+                                                                    className="px-5 py-2  flex justify-center flex-col whitespace-nowrap">
+                                                                    <p>{d.orgN}</p>
+                                                                    <p className="font-[400] text-neutral-800 flex items-center gap-1 truncate">
+                                                                        <Briefcase size="12px" className="shrink-0"/>
+                                                                        {d.orgP}
+                                                                    </p>
+                                                                </div>
+                                                                <div
+                                                                    className="px-5 py-2 flex items-center whitespace-nowrap">
+                                                                    <p className="font-[400] flex gap-1 items-center truncate">
+                                                                        <Phone size="12px" className="shrink-0"/>
+                                                                        {d.phoneNumber}
+                                                                    </p>
+                                                                </div>
+                                                                <div
+                                                                    className="px-5 py-2 flex items-center whitespace-nowrap">
+                                                                    <p className="font-[400] flex gap-1 items-center truncate">
+                                                                        <User size="12px" className="shrink-0"/>
+                                                                        {d.salutations}
+                                                                    </p>
+                                                                </div>
+                                                                <div
+                                                                    className="px-5 py-2  flex items-center whitespace-nowrap">
+                                                                    <p className="font-[400]">
+                                                                        {countriesKV[d.country]}
+                                                                    </p>
+                                                                </div>
+                                                                <div
+                                                                    className="px-5 py-2 flex items-center whitespace-nowrap">
+                                                                    <p className="font-[400] flex gap-1 items-center truncate">
+                                                                        <HomeIcon size="12px" className="shrink-0"/>
+                                                                        {d.addr || "N/A"}
+                                                                    </p>
+                                                                </div>
+                                                                <div
+                                                                    className="px-5 py-2  flex items-center whitespace-nowrap">
+                                                                    <p className="font-[400]">
+                                                                        {moment
+                                                                            .unix(d.registeredOn)
+                                                                            .format("MMM DD, YYYY (hh:mm A)")}
+                                                                    </p>
+                                                                </div>
+                                                                <div
+                                                                    className="px-5 py-2  flex items-center whitespace-nowrap">
+                                                                    <p className="font-[400]">
+                                                                        {d.attendBizMatch === "ys" && (
+                                                                            <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
+                                                                                SURE
+                                                                            </p>
+                                                                        )}
+                                                                        {d.attendBizMatch === "ym" && (
+                                                                            <p className="text-[11px] px-4 py-1 bg-yellow-50 border-1 border-yellow-600 text-yellow-600 w-max rounded-full text-xs">
+                                                                                MAYBE
+                                                                            </p>
+                                                                        )}
+                                                                        {d.attendBizMatch === "no" && (
+                                                                            <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
+                                                                                NO
+                                                                            </p>
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+
+                                                                <div
+                                                                    className="px-5 py-2 flex items-center whitespace-nowrap">
+                                                                    {d.attended && (
+                                                                        <p className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
+                                                                            IN EVENT
+                                                                        </p>
+                                                                    )}
+                                                                    {!d.attended && (
+                                                                        <p className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
+                                                                            NOT IN EVENT
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+
+                                                                <div
+                                                                    className="bg-white px-5 py-2 text-right flex items-center gap-2 justify-end sticky z-[10] right-0">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditAttendee({
+                                                                                active: true,
+                                                                                attended: {
+                                                                                    err: "",
+                                                                                    value: d.attended ? "true" : "false",
+                                                                                },
+                                                                                name: {
+                                                                                    err: "",
+                                                                                    value: d.name,
+                                                                                },
+                                                                                orgN: {
+                                                                                    err: "",
+                                                                                    value: d.orgN,
+                                                                                },
+                                                                                orgP: {
+                                                                                    err: "",
+                                                                                    value: d.orgP,
+                                                                                },
+                                                                                email: {
+                                                                                    err: "",
+                                                                                    value: d.email,
+                                                                                },
+                                                                                number: {
+                                                                                    err: "",
+                                                                                    value: d.phoneNumber,
+                                                                                },
+                                                                                addr: {
+                                                                                    err: "",
+                                                                                    value: d.addr,
+                                                                                },
+                                                                                salutation: {
+                                                                                    err: "",
+                                                                                    value: d.salutations,
+                                                                                },
+                                                                                attendBizMatch: {
+                                                                                    err: "",
+                                                                                    value: d.attendBizMatch,
+                                                                                },
+                                                                                country: {
+                                                                                    err: "",
+                                                                                    value: d.country,
+                                                                                },
+                                                                                id: d.id,
+                                                                            });
+                                                                        }}
+                                                                        className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                                                    >
+                                                                        <Pencil size="15px"/>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setViewAttendee({
+                                                                                active: true,
+                                                                                attended: d.attended,
+                                                                                name: d.name,
+                                                                                orgN: d.orgN,
+                                                                                orgP: d.orgP,
+                                                                                email: d.email,
+                                                                                phoneNumber: d.phoneNumber,
+                                                                                addr: d.addr,
+                                                                                salutations: d.salutations,
+                                                                                registeredOn: d.registeredOn,
+                                                                                id: d.id,
+                                                                            });
+                                                                        }}
+                                                                        className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                                                    >
+                                                                        <Eye size="15px"/>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            printQR({
+                                                                                eventName: ordEvData.eventData.name,
+                                                                                attendeeName: d.name,
+                                                                                organization: d.orgN,
+                                                                                position: d.orgP,
+                                                                                identifier: d.id,
+                                                                            })
+                                                                        }
+                                                                        className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                                                    >
+                                                                        <Printer size="15px"/>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            handleDeleteAtendee(
+                                                                                d.id,
+                                                                                d.name,
+                                                                                d.public_id_qr
+                                                                            );
+                                                                        }}
+                                                                        className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                                                    >
+                                                                        <Trash size="15px"/>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+
+                                            </div>
+
+                                        </motion.div>
+                                        <div
+                                            className="mt-2 text-xs text-neutral-500 flex items-center justify-between">
+                                            <p>Data as of: {moment().format("MMM DD, YYYY - HH:mm:ss")}</p>
+                                            <p className="font-[500] text-neutral-500 select-none">Showing {ordEvData.attendeeData.data.length} of {ordEvData.attendeeData.totalAtnSize} attendee{ordEvData.attendeeData.totalAtnSize > 1 && "s"}</p>
                                         </div>
+                                        <EventraPagination
+
+                                        />
                                     </div>
-                                </div>
-                                <EventraPagination
-                                    dataSize={dataSize}
-                                    currPage={currPage}
-                                    limit={limit}
-                                    onPageNumberClick={onPageNumberClick}
-                                />
-                            </>
-                        )}
+                                </>
+                            )}
+                        </AnimatePresence>
                     </>
                 )}
 
-                {fetching && (
+                {ordEvData.fetchingStates.attendees && (
                     <>
                         <div className="h-[600px]">
                             <div className="loading h-full w-full grid place-content-center">

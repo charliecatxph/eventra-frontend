@@ -26,7 +26,7 @@ export default function PasswordInput({
                                       }: PasswordInput) {
     return (
         <div className={className || ""}>
-            <label htmlFor={identifier} className="text-xs font-[500]">
+            <label htmlFor={identifier} className="font-[500] text-sm">
                 {title}
                 <span className="font-[500] text-red-600">*</span>
             </label>
@@ -41,7 +41,7 @@ export default function PasswordInput({
                 }}
                 onFocus={onFocus && onFocus}
                 onBlur={onBlur && onBlur}
-                className="px-5 py-1 focus:outline-green-400 border-1 block w-full rounded-md border-neutral-200"
+                className="mt-1.5 w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
             />
 
             <AnimatePresence>

@@ -1,5 +1,5 @@
 import {CircularProgress} from "@mui/material";
-import {LineChart, Users} from "lucide-react";
+import {DoorOpen, LineChart} from "lucide-react";
 import {
     ArcElement,
     CategoryScale,
@@ -14,6 +14,7 @@ import {
 } from "chart.js";
 
 import {Pie} from "react-chartjs-2";
+import CountUp from "react-countup";
 
 interface PieChartData {
     labels: string[];
@@ -28,10 +29,6 @@ interface PieChartData {
     ];
 }
 
-interface BentoParametersPieChart {
-    isFetching: boolean;
-    data: PieChartData;
-}
 
 ChartJS.register(
     CategoryScale,
@@ -48,26 +45,38 @@ ChartJS.register(
 export default function OrdEvRegPieAnalytics({
                                                  isFetching,
                                                  data,
-                                             }: BentoParametersPieChart) {
+                                             }) {
     return (
         <>
-            <h1 className="font-[500] text-sm flex gap-2 items-center text-neutral-900">
-                <Users size="15px" strokeWidth={2}/>
-                In Event / Not In Event (Ordinary)
+            <h1 className="font-[400] geist text-sm flex gap-2 items-center text-neutral-900">
+                <DoorOpen size="15px" strokeWidth={2}/>
+                Attendance
             </h1>
             <div className="flex-1 relative">
                 {!isFetching &&
                     !(
                         data.datasets[0].data[0] === 0 && data.datasets[0].data[1] === 0
                     ) && (
-                        <Pie
-                            data={data}
-                            options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {legend: {display: false}},
-                            }}
-                        />
+                        <div className="flex h-full items-center">
+                            <div className="basis-1/2">
+                                <div><h1 className="text-3xl font-[600] geist"><CountUp end={data.datasets[0].data[1]}
+                                                                                        duration={1}/></h1>
+                                    <p className="text-sm text-neutral-800 geist">In Event</p></div>
+                                <div className="mt-2"><h1 className="text-3xl font-[600] geist"><CountUp
+                                    end={data.datasets[0].data[0]} duration={1}/></h1>
+                                    <p className="text-sm text-neutral-800 geist">Not In Event</p></div>
+                            </div>
+                            <div className="basis-1/2 h-full">
+                                <Pie
+                                    data={data}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {legend: {display: false}},
+                                    }}
+                                />
+                            </div>
+                        </div>
                     )}
                 {!isFetching &&
                     data.datasets[0].data[0] === 0 &&

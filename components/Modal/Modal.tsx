@@ -66,7 +66,7 @@ export const Modal = ({
                 });
             }
         }
-    }, []);
+    }, [color]);
 
     if (type === "loading") {
         return (

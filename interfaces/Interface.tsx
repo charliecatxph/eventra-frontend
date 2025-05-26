@@ -33,6 +33,7 @@ export interface BizMatchEvent {
     upl_on: number;
     type: string;
     status: string;
+    location: string
 }
 
 type AttendBizMatch = "ys" | "ym" | "no";

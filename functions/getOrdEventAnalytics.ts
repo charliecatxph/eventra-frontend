@@ -1,23 +1,5 @@
 import axios from "axios";
 
-interface LineChartData {
-    labels: string[];
-    datasets: [
-        {
-            label: string;
-            data: number[];
-            borderColor: string;
-            tension: number;
-            pointRadius: number;
-            pointHoverRadius: number;
-            pointBackgroundColor: string;
-            pointHoverBackgroundColor: string;
-            pointBorderColor: string;
-            pointHoverBorderColor: string;
-        }
-    ];
-}
-
 interface GetOrdEventAnalyticsResponse {
     data: LineChartData;
     err?: string;
@@ -54,37 +36,36 @@ export const getOrdEventAnalytics = (
 
             const acs = req.data.data;
 
-            let tmpx: LineChartData = {
+            let tmpx: any = {
                 labels: [],
-                datasets: [
-                    {
-                        label: "Registrations",
-                        data: [],
-                        borderColor: "oklch(55.8% 0.288 302.321)",
-
-                        tension: 0.6,
-
-                        pointRadius: 4, // Visible point
-                        pointHoverRadius: 6, // Enlarges on hover
-                        pointBackgroundColor: "#fff",
-                        pointHoverBackgroundColor: "#4338CA",
-                        pointBorderColor: "#000",
-                        pointHoverBorderColor: "#fff",
-                    },
-                ],
+                data: [],
+                movingAvg: []
             };
 
             Object.keys(acs).forEach((date) => {
                 tmpx = {
+                    ...tmpx,
                     labels: [...tmpx.labels, date],
-                    datasets: [
-                        {
-                            ...tmpx.datasets[0],
-                            data: [...tmpx.datasets[0].data, acs[date]],
-                        },
-                    ],
+                    data: [...tmpx.data, acs[date]]
+
                 };
+
             });
+
+            const n = tmpx.data.length;
+            const windowSize = 5; // 20% of data length as window size
+            const half = Math.floor(windowSize / 2);
+
+            tmpx.movingAvg = [];
+
+            for (let i = 0; i < n; i++) {
+                const start = Math.max(0, i - half);
+                const end = Math.min(n, i + half + 1);
+                const window = tmpx.data.slice(start, end);
+                const avg = window.reduce((sum, val) => sum + val, 0) / window.length;
+                tmpx.movingAvg.push(avg);
+            }
+
 
             resolve({
                 data: tmpx,

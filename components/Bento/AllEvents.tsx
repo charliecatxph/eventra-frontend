@@ -34,13 +34,15 @@ export default function AllEvents({isFetching, data}: AllEventsParams) {
             shwlx.filter(
                 (ev) =>
                     (!filterEvs.status || ev.status === filterEvs.status) &&
-                    (!filterEvs.ordEventOnly || ev.type === "Ordinary Event") &&
-                    (!filterEvs.bizEventOnly || ev.type === "BizMatch Event")
+                    (!filterEvs.ordEventOnly || ev.type === "Ordinary") &&
+                    (!filterEvs.bizEventOnly || ev.type === "BizMatch")
             )
         );
     }, [data, filterEvs]);
+
     return (
         <>
+
             <div className="flex justify-between items-center">
                 <h1 className="font-[500]">Events</h1>
                 <div className="filters text-xs  flex gap-1 items-center select-none">
@@ -52,8 +54,8 @@ export default function AllEvents({isFetching, data}: AllEventsParams) {
                                 bizEventOnly: false,
                             }));
                         }}
-                        className={`cursor-pointer py-1 px-2 border-1 border-neutral-100 rounded-full hover:bg-neutral-50 hover:text-emerald-600 ${
-                            filterEvs.ordEventOnly && "bg-emerald-600 text-white"
+                        className={`cursor-pointer font-[600] py-1 px-2 border-1 border-neutral-100 rounded-full  ${
+                            filterEvs.ordEventOnly ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-white hover:bg-neutral-50 hover:text-emerald-600"
                         }`}
                     >
                         Ordinary Events
@@ -66,8 +68,8 @@ export default function AllEvents({isFetching, data}: AllEventsParams) {
                                 bizEventOnly: !pv.bizEventOnly,
                             }));
                         }}
-                        className={`cursor-pointer py-1 px-2 border-1 border-neutral-100 rounded-full hover:bg-neutral-50 hover:text-emerald-600 ${
-                            filterEvs.bizEventOnly && "bg-emerald-600 text-white"
+                        className={`cursor-pointer font-[600] py-1 px-2 border-1 border-neutral-100 rounded-full   ${
+                            filterEvs.bizEventOnly ? "bg-emerald-600 text-white hover:bg-emerald-700 " : "bg-white hover:bg-neutral-50 hover:text-emerald-600"
                         }`}
                     >
                         BizMatch
@@ -368,11 +370,12 @@ export default function AllEvents({isFetching, data}: AllEventsParams) {
                             <p className="text-center">You have no events.</p>
                         ) : (
                             aEvs.map((d, i) => {
+
                                 return (
                                     <>
                                         <div
-                                            onClick={() => router.push(`/view-event/${d.id}`)}
-                                            className="hover:bg-neutral-50 event flex justify-between items-center px-4 py-3 border-1 border-neutral-100 rounded-md"
+                                            onClick={() => router.push(`${d.type === "BizMatch" ? `/view-bz-event/${d.id}` : `/view-event/${d.id}`}`)}
+                                            className="cursor-pointer hover:bg-neutral-50 event flex justify-between items-center px-4 py-3 border-1 border-neutral-100 rounded-md"
                                         >
                                             <div>
                                                 <h1 className="text-sm font-[500]">{d.name}</h1>

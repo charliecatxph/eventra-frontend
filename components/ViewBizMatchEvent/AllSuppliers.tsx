@@ -689,6 +689,7 @@ export default function AllSuppliers({ isFetching, data }) {
                                     closed: "Closed",
                                     in_meeting: "In Meeting",
                                     break: "Break",
+                                    waiting: "Waiting",
                                   };
                                   const statusColors = {
                                     open: "bg-emerald-100/70 text-emerald-700 border-emerald-300",
@@ -698,6 +699,8 @@ export default function AllSuppliers({ isFetching, data }) {
                                       "bg-blue-100/70 text-blue-700 border-blue-300",
                                     break:
                                       "bg-amber-100/70 text-amber-700 border-amber-300",
+                                    waiting:
+                                      "bg-purple-100/70 text-purple-700 border-purple-300",
                                   };
                                   // Normalize status string
                                   let statKey = (d.status.status || "")

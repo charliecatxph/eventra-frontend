@@ -231,7 +231,6 @@ export default function Login() {
       );
 
       const decode = jwt.decode(req.data.token);
-
       dispatch(
         setSupplierAccount({
           ...bizData.supplier,
@@ -245,7 +244,7 @@ export default function Login() {
           name: decode.name,
           website: decode.website,
           timeslots: [],
-          open: decode.status.isOpen,
+          open: decode.status,
           acsTok: req.data.token,
         })
       );
@@ -293,409 +292,389 @@ export default function Login() {
 
   return (
     <>
-      <div className="min-h-screen w-full grid place-items-center px-5">
-        <AnimatePresence mode="wait">
-          {bizData.form.mode === "register" && (
-            <motion.div
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -10, opacity: 0 }}
-              key={1}
-              className="w-full flex items-center flex-col"
-            >
-              <div className="w-full max-w-[600px] bg-white px-7 py-5 shadow-sm shadow-neutral-50 border-1 border-neutral-100 rounded-md">
-                <div className="flex flex-col items-center py-5">
-                  <img src="/assets/mpoc.png" alt="" />
-                  <h1 className="mt-5 text-center font-[600] text-2xl">
-                    Register your Organization
-                  </h1>
-                  <p className="text-center text-sm text-neutral-800 mt-2">
-                    Please register first to avoid the hassle of entering this
-                    information for every timeslot you sign up for.
-                  </p>
-                </div>
-
-                <AnimatePresence>
-                  {bizData.form.serverResponseError && (
-                    <motion.div
-                      key={1}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="err bg-red-600 text-sm font-[600] rounded-md py-1.5 w-full"
-                    >
-                      <p className="text-center text-white inter">
-                        {bizData.form.serverResponseError}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <form
-                  onSubmit={(e) => !bizData.form.processing && handleSubmit(e)}
-                  className="flex flex-col gap-2 mt-5"
-                >
-                  <TextInput
-                    identifier="name"
-                    title="Your Name"
-                    value={bizData.form.data.name.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          name: {
-                            value: dx,
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.name.err}
-                    req
-                  />
-                  <TextInput
-                    identifier="orgN"
-                    title="Organization Name"
-                    value={bizData.form.data.orgN.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          orgN: {
-                            value: dx,
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.orgN.err}
-                    req
-                  />
-
-                  <TextInput
-                    identifier="orgP"
-                    title="Position in Organization"
-                    value={bizData.form.data.orgP.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          orgP: {
-                            value: dx,
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.orgP.err}
-                    req
-                  />
-
-                  <TextInput
-                    identifier="email"
-                    title="E-Mail"
-                    value={bizData.form.data.email.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          email: {
-                            value: dx,
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.email.err}
-                    req
-                  />
-
-                  <PasswordInput
-                    identifier="pw"
-                    title="Password"
-                    value={bizData.form.data.pw.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          pw: {
-                            value: dx,
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.pw.err}
-                    req
-                  />
-                  <button
-                    type={"submit"}
-                    className={`${
-                      !bizData.form.processing
-                        ? "bg-[#212121] hover:bg-neutral-800 text-white"
-                        : "bg-neutral-100 border-1 border-neutral-300 text-black"
-                    } mt-5 transition-all flex items-center justify-center gap-2 py-2  font-[600] rounded-lg`}
-                  >
-                    {bizData.form.processing ? (
-                      <>
-                        <CircularProgress
-                          disableShrink
-                          value={70}
-                          thickness={6}
-                          size={15}
-                          sx={{
-                            color: "black",
-                          }}
-                        />
-                        Registering...
-                      </>
-                    ) : (
-                      "Register and Sign In"
-                    )}
-                  </button>
-
-                  <p className="mt-5 text-center text-sm">
-                    Already registered your organization?{" "}
-                    <button
-                      className="font-[600]"
-                      onClick={() => dispatch(setMode("login"))}
-                    >
-                      Login here.
-                    </button>
-                  </p>
-                </form>
+      <div className="min-h-screen w-full grid place-items-center px-5 geist">
+        {bizData.form.mode === "register" && (
+          <div className="w-full flex items-center flex-col">
+            <div className="w-full max-w-[600px] bg-white   ">
+              <div className="flex flex-col items-center py-5">
+                <img src="/assets/petals.png" alt="" className="size-13" />
+                <h1 className="mt-5 text-center font-[600] text-2xl">
+                  Register your Organization
+                </h1>
+                <p className="text-center text-sm text-neutral-800 mt-2">
+                  Please register first to avoid the hassle of entering this
+                  information for every timeslot you sign up for.
+                </p>
               </div>
-              <p className="mt-5 text-center text-sm">
-                Are you a supplier?{" "}
-                <button
-                  className="font-[600]"
-                  onClick={() => dispatch(setMode("supplier"))}
-                >
-                  Login here.
-                </button>
-              </p>
-            </motion.div>
-          )}
-          {bizData.form.mode === "login" && (
-            <motion.div
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -10, opacity: 0 }}
-              key={2}
-              className="w-full flex items-center flex-col"
-            >
-              <div className="w-full max-w-[600px] bg-white px-7 py-5 shadow-sm shadow-neutral-50 border-1 border-neutral-100 rounded-md">
-                <div className="flex flex-col items-center py-5">
-                  <img src="/assets/mpoc.png" alt="" />
-                  <h1 className="mt-5 text-center font-[600] text-2xl">
-                    Login to MPOF2025 BizMatch
-                  </h1>
-                  <p className="text-center text-sm text-neutral-800 mt-2">
-                    Enter your credentials to attend a supplier's timeslot.
-                  </p>
-                </div>
 
-                <AnimatePresence>
-                  {bizData.form.serverResponseError && (
-                    <motion.div
-                      key={1}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="err bg-red-600 text-sm font-[600] rounded-md py-1.5 w-full"
-                    >
-                      <p className="text-center text-white inter">
-                        {bizData.form.serverResponseError}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <form
-                  className="flex flex-col gap-2 mt-5"
-                  onSubmit={(e) => !bizData.form.processing && handleSubmit(e)}
-                >
-                  <TextInput
-                    identifier="email"
-                    title="E-Mail"
-                    value={bizData.form.data.email.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          email: {
-                            value: dx,
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.email.err}
-                    req
-                  />
-
-                  <PasswordInput
-                    identifier="pw"
-                    title="Password"
-                    value={bizData.form.data.pw.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          pw: {
-                            value: dx,
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.pw.err}
-                    req
-                  />
-                  <button
-                    type="submit"
-                    className={`${
-                      !bizData.form.processing
-                        ? "bg-[#212121] hover:bg-neutral-800 text-white"
-                        : "bg-neutral-100 border-1 border-neutral-300 text-black"
-                    } mt-5 transition-all flex items-center justify-center gap-2 py-2  font-[600] rounded-lg`}
+              <AnimatePresence>
+                {bizData.form.serverResponseError && (
+                  <motion.div
+                    key={1}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="err bg-red-600 text-sm font-[600] rounded-md py-1.5 w-full"
                   >
-                    {bizData.form.processing ? (
-                      <>
-                        <CircularProgress
-                          disableShrink
-                          value={70}
-                          thickness={6}
-                          size={15}
-                          sx={{
-                            color: "black",
-                          }}
-                        />
-                        Logging in...
-                      </>
-                    ) : (
-                      "Log In"
-                    )}
-                  </button>
+                    <p className="text-center text-white inter">
+                      {bizData.form.serverResponseError}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <form
+                onSubmit={(e) => !bizData.form.processing && handleSubmit(e)}
+                className="flex flex-col gap-2 mt-5"
+              >
+                <TextInput
+                  identifier="name"
+                  title="Your Name"
+                  value={bizData.form.data.name.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        name: {
+                          value: dx,
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.name.err}
+                  req
+                />
+                <TextInput
+                  identifier="orgN"
+                  title="Organization Name"
+                  value={bizData.form.data.orgN.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        orgN: {
+                          value: dx,
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.orgN.err}
+                  req
+                />
 
-                  <p className="mt-5 text-center text-sm">
-                    Don't have an account yet?{" "}
-                    <button
-                      type="button"
-                      className="font-[600]"
-                      onClick={() => dispatch(setMode("register"))}
-                    >
-                      Register here.
-                    </button>
-                  </p>
-                </form>
-              </div>
-              <p className="mt-5 text-center text-sm">
-                Are you a supplier?{" "}
+                <TextInput
+                  identifier="orgP"
+                  title="Position in Organization"
+                  value={bizData.form.data.orgP.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        orgP: {
+                          value: dx,
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.orgP.err}
+                  req
+                />
+
+                <TextInput
+                  identifier="email"
+                  title="E-Mail"
+                  value={bizData.form.data.email.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        email: {
+                          value: dx,
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.email.err}
+                  req
+                />
+
+                <PasswordInput
+                  identifier="pw"
+                  title="Password"
+                  value={bizData.form.data.pw.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        pw: {
+                          value: dx,
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.pw.err}
+                  req
+                />
                 <button
-                  className="font-[600]"
-                  onClick={() => dispatch(setMode("supplier"))}
+                  type={"submit"}
+                  className={`${
+                    !bizData.form.processing
+                      ? "bg-[#212121] hover:bg-neutral-800 text-white"
+                      : "bg-neutral-100 border-1 border-neutral-300 text-black"
+                  } mt-5 transition-all flex items-center justify-center gap-2 py-2  font-[600] rounded-lg`}
                 >
-                  Login here.
-                </button>
-              </p>
-            </motion.div>
-          )}
-          {bizData.form.mode === "supplier" && (
-            <motion.div
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -10, opacity: 0 }}
-              key={3}
-              className="w-full flex items-center flex-col"
-            >
-              <div className="w-full max-w-[600px] bg-white px-7 py-5 shadow-sm shadow-neutral-50 border-1 border-neutral-100 rounded-md">
-                <div className="flex flex-col items-center py-5">
-                  <img src="/assets/mpoc.png" alt="" />
-                  <h1 className="mt-5 text-center font-[600] text-2xl">
-                    MPOF2025 Supplier Login
-                  </h1>
-                  <p className="text-center text-sm text-neutral-800 mt-2">
-                    Enter your access code to see your appointments.
-                  </p>
-                </div>
-
-                <AnimatePresence>
-                  {bizData.form.serverResponseError && (
-                    <motion.div
-                      key={1}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="err bg-red-600 text-sm font-[600] rounded-md py-1.5 w-full"
-                    >
-                      <p className="text-center text-white inter">
-                        {bizData.form.serverResponseError}
-                      </p>
-                    </motion.div>
+                  {bizData.form.processing ? (
+                    <>
+                      <CircularProgress
+                        disableShrink
+                        value={70}
+                        thickness={6}
+                        size={15}
+                        sx={{
+                          color: "black",
+                        }}
+                      />
+                      Registering...
+                    </>
+                  ) : (
+                    "Register and Sign In"
                   )}
-                </AnimatePresence>
-                <form
-                  onSubmit={(e) => !bizData.form.processing && handleSubmit(e)}
-                  className="flex flex-col gap-2 mt-5"
-                >
-                  <TextInput
-                    identifier="acscode"
-                    title="Access Code"
-                    value={bizData.form.data.email.value}
-                    onInput={(dx) => {
-                      dispatch(
-                        setLoginFormData({
-                          ...bizData.form.data,
-                          email: {
-                            value: dx.toUpperCase(),
-                            err: "",
-                          },
-                        })
-                      );
-                    }}
-                    error={bizData.form.data.email.err}
-                    placeholder="AAXPPL"
-                    req
-                  />
-
-                  <button
-                    type="submit"
-                    className={`${
-                      !bizData.form.processing
-                        ? "bg-[#212121] hover:bg-neutral-800 text-white"
-                        : "bg-neutral-100 border-1 border-neutral-300 text-black"
-                    } mt-5 transition-all flex items-center justify-center gap-2 py-2  font-[600] rounded-lg`}
-                  >
-                    {bizData.form.processing ? (
-                      <>
-                        <CircularProgress
-                          disableShrink
-                          value={70}
-                          thickness={6}
-                          size={15}
-                          sx={{
-                            color: "black",
-                          }}
-                        />
-                        Logging in...
-                      </>
-                    ) : (
-                      "Log In"
-                    )}
-                  </button>
-                </form>
-              </div>
-              <p className="mt-5 text-center text-sm">
-                Are you a client?{" "}
-                <button
-                  className="font-[600]"
-                  onClick={() => dispatch(setMode("login"))}
-                >
-                  Login here.
                 </button>
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
+                <p className="mt-5 text-center text-sm">
+                  Already registered your organization?{" "}
+                  <button
+                    className="font-[600]"
+                    onClick={() => dispatch(setMode("login"))}
+                  >
+                    Login here.
+                  </button>
+                </p>
+              </form>
+            </div>
+            <p className="mt-5 text-center text-sm">
+              Are you a supplier?{" "}
+              <button
+                className="font-[600]"
+                onClick={() => dispatch(setMode("supplier"))}
+              >
+                Login here.
+              </button>
+            </p>
+          </div>
+        )}
+        {bizData.form.mode === "login" && (
+          <div className="w-full flex items-center flex-col">
+            <div className="w-full max-w-[600px] bg-white    ">
+              <div className="flex flex-col items-center py-5">
+                <img src="/assets/petals.png" alt="" className="size-13" />
+                <h1 className="mt-5 text-center font-[600] text-2xl">
+                  Login to MPOF2025 BizMatch
+                </h1>
+                <p className="text-center text-sm text-neutral-800 mt-2">
+                  Enter your credentials to attend a supplier's timeslot.
+                </p>
+              </div>
+
+              <AnimatePresence>
+                {bizData.form.serverResponseError && (
+                  <motion.div
+                    key={1}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="err bg-red-600 text-sm font-[600] rounded-md py-1.5 w-full"
+                  >
+                    <p className="text-center text-white inter">
+                      {bizData.form.serverResponseError}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <form
+                className="flex flex-col gap-2 mt-5"
+                onSubmit={(e) => !bizData.form.processing && handleSubmit(e)}
+              >
+                <TextInput
+                  identifier="email"
+                  title="E-Mail"
+                  value={bizData.form.data.email.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        email: {
+                          value: dx,
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.email.err}
+                  req
+                />
+
+                <PasswordInput
+                  identifier="pw"
+                  title="Password"
+                  value={bizData.form.data.pw.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        pw: {
+                          value: dx,
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.pw.err}
+                  req
+                />
+                <button
+                  type="submit"
+                  className={`${
+                    !bizData.form.processing
+                      ? "bg-[#212121] hover:bg-neutral-800 text-white"
+                      : "bg-neutral-100 border-1 border-neutral-300 text-black"
+                  } mt-5 transition-all flex items-center justify-center gap-2 py-2  font-[600] rounded-lg`}
+                >
+                  {bizData.form.processing ? (
+                    <>
+                      <CircularProgress
+                        disableShrink
+                        value={70}
+                        thickness={6}
+                        size={15}
+                        sx={{
+                          color: "black",
+                        }}
+                      />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Log In"
+                  )}
+                </button>
+
+                <p className="mt-5 text-center text-sm">
+                  Don't have an account yet?{" "}
+                  <button
+                    type="button"
+                    className="font-[600]"
+                    onClick={() => dispatch(setMode("register"))}
+                  >
+                    Register here.
+                  </button>
+                </p>
+              </form>
+            </div>
+            <p className="mt-5 text-center text-sm">
+              Are you a supplier?{" "}
+              <button
+                className="font-[600]"
+                onClick={() => dispatch(setMode("supplier"))}
+              >
+                Login here.
+              </button>
+            </p>
+          </div>
+        )}
+        {bizData.form.mode === "supplier" && (
+          <div className="w-full flex items-center flex-col">
+            <div className="w-full max-w-[600px] bg-white    ">
+              <div className="flex flex-col items-center py-5">
+                <img src="/assets/petals.png" alt="" className="size-13" />
+                <h1 className="mt-5 text-center font-[600] text-2xl">
+                  MPOF2025 Supplier Login
+                </h1>
+                <p className="text-center text-sm text-neutral-800 mt-2">
+                  Enter your access code to see your appointments.
+                </p>
+              </div>
+
+              <AnimatePresence>
+                {bizData.form.serverResponseError && (
+                  <motion.div
+                    key={1}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="err bg-red-600 text-sm font-[600] rounded-md py-1.5 w-full"
+                  >
+                    <p className="text-center text-white inter">
+                      {bizData.form.serverResponseError}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <form
+                onSubmit={(e) => !bizData.form.processing && handleSubmit(e)}
+                className="flex flex-col gap-2 mt-5"
+              >
+                <TextInput
+                  identifier="acscode"
+                  title="Access Code"
+                  value={bizData.form.data.email.value}
+                  onInput={(dx) => {
+                    dispatch(
+                      setLoginFormData({
+                        ...bizData.form.data,
+                        email: {
+                          value: dx.toUpperCase(),
+                          err: "",
+                        },
+                      })
+                    );
+                  }}
+                  error={bizData.form.data.email.err}
+                  placeholder="AAXPPL"
+                  req
+                />
+
+                <button
+                  type="submit"
+                  className={`${
+                    !bizData.form.processing
+                      ? "bg-[#212121] hover:bg-neutral-800 text-white"
+                      : "bg-neutral-100 border-1 border-neutral-300 text-black"
+                  } mt-5 transition-all flex items-center justify-center gap-2 py-2  font-[600] rounded-lg`}
+                >
+                  {bizData.form.processing ? (
+                    <>
+                      <CircularProgress
+                        disableShrink
+                        value={70}
+                        thickness={6}
+                        size={15}
+                        sx={{
+                          color: "black",
+                        }}
+                      />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Log In"
+                  )}
+                </button>
+              </form>
+            </div>
+            <p className="mt-5 text-center text-sm">
+              Are you a client?{" "}
+              <button
+                className="font-[600]"
+                onClick={() => dispatch(setMode("login"))}
+              >
+                Login here.
+              </button>
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

@@ -7,13 +7,11 @@ import {
   setUserType,
 } from "@/features/attendBizmatchSlice";
 import { useDispatch, useSelector } from "react-redux";
-import ViewSpecificSupplier from "@/components/Attend-BzEvent/ViewSpecificSupplier";
 import Login from "@/components/Attend-BzEvent/Login";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import jwt from "jsonwebtoken";
 import { useRouter } from "next/router";
-import SupplierTimesheet from "@/components/Attend-BzEvent/SupplierTimesheet";
 import SupplierMain from "@/components/Attend-BzEvent/Supplier/SupplierMain";
 
 export default function AttendBizMatch() {
@@ -72,7 +70,7 @@ export default function AttendBizMatch() {
           )
           .then((d) => {
             const decode = jwt.decode(d.data.token);
-
+            console.log(decode);
             dispatch(
               setSupplierAccount({
                 ...bizData.supplier,
@@ -86,7 +84,7 @@ export default function AttendBizMatch() {
                 name: decode.name,
                 website: decode.website,
                 timeslots: [],
-                open: decode.status.isOpen,
+                open: decode.status.status,
                 acsTok: d.data.token,
               })
             );
@@ -114,10 +112,6 @@ export default function AttendBizMatch() {
       {!supplier &&
         bizData.user.isLoggedIn &&
         bizData.userType === "client" && <ViewAllSuppliers />}
-
-      {supplier && bizData.user.isLoggedIn && bizData.userType === "client" && (
-        <ViewSpecificSupplier />
-      )}
 
       {bizData.userType === "supplier" && bizData.supplier.isLoggedIn && (
         <SupplierMain />

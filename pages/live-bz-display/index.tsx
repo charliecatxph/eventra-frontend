@@ -32,7 +32,7 @@ interface Supplier {
   location: string;
   logoSecUrl: string;
   status: {
-    isOpen: boolean;
+    status: string;
     representedBy: string;
     orgN?: string;
   };
@@ -67,9 +67,7 @@ export default function LiveBzDisplay() {
     await new Promise((res, rej) => setTimeout(() => res(""), 500));
 
     window.speechSynthesis.cancel();
-    const text = `${announcement.data.name} is now ${
-      announcement.data.status ? "OPEN" : "CLOSED"
-    } at ${announcement.data.location}`;
+    const text = `${announcement.data.name} is now ${announcement.data.status} at ${announcement.data.location}`;
     const utterance = new SpeechSynthesisUtterance(text);
 
     const voices = window.speechSynthesis.getVoices();
@@ -263,6 +261,44 @@ export default function LiveBzDisplay() {
     setRender(true);
   });
 
+  useEffect(() => {
+    let worker: Worker;
+
+    try {
+      if (typeof window !== "undefined") {
+        worker = new window.Worker("/timeWorker.js");
+
+        worker.onmessage = (event) => {
+          if (event.data.error) {
+            console.error("Worker error:", event.data.error);
+            return;
+          }
+          setCurrentTime(moment(event.data).utcOffset(8).format("hh:mm:ss A"));
+        };
+
+        worker.onerror = (error) => {
+          console.error("Worker error:", error);
+        };
+
+        // Send initial message to start the timer
+        worker.postMessage("start");
+      }
+    } catch (error) {
+      console.error("Failed to initialize worker:", error);
+      // Fallback to regular interval if worker fails
+      const interval = setInterval(() => {
+        setCurrentTime(moment().format("hh:mm:ss A"));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+
+    return () => {
+      if (worker) {
+        worker.terminate();
+      }
+    };
+  }, []);
+
   if (!render) return <></>;
 
   return (
@@ -275,13 +311,18 @@ export default function LiveBzDisplay() {
         <div>
           <div className="bg-[#212121] min-h-screen">
             <div className="px-15 py-10 text-white text-[50px] flex justify-between items-center font-[600]">
-              <h1 className="flex items-center gap-10">
+              <h1 className="flex items-center gap-10 geist">
                 <img src="/assets/petals.png" /> Malaysian Palm Oil Forum
                 Philippines 2025
               </h1>
+              <div className="flex items-center gap-4">
+                <span className="text-[50px] geist">
+                  {currentTime ? currentTime : "Synchronizing..."}
+                </span>
+              </div>
             </div>
 
-            <table className="w-full table-fixed">
+            <table className="w-full table-fixed geist">
               <tbody>
                 {suppliers.map((d, i) => {
                   return (
@@ -310,21 +351,34 @@ export default function LiveBzDisplay() {
                         {d.location}
                       </td>
                       <td className="py-6 px-4 text-[40px] bg-[#2a2a2a] text-white ">
-                        <span className="text-[40px] font-[700] block truncate text-white">
+                        <span className="text-[40px] font-[400] block truncate text-white">
                           {d.status.orgN || "Not in a meeeting."}
-                        </span>
-                        <span className="text-[30px] font-[500] block text-gray-300">
-                          {d.status.representedBy || "-"}
                         </span>
                       </td>
                       <td className="py-6 px-4 bg-[#2a2a2a] ">
-                        {d.status.isOpen ? (
-                          <span className="block w-max mx-auto px-6 py-2 rounded-full text-[32px] font-medium bg-emerald-500/20 text-emerald-400">
-                            Open
+                        {d.status.status === "open" && (
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-emerald-500/20 text-emerald-400">
+                            OPEN
                           </span>
-                        ) : (
-                          <span className="block w-max mx-auto px-6 py-2 rounded-full text-[32px] font-medium bg-red-500/20 text-red-400">
-                            Closed
+                        )}
+                        {d.status.status === "closed" && (
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-red-500/20 text-red-400">
+                            CLOSED
+                          </span>
+                        )}
+                        {d.status.status === "in_meeting" && (
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-yellow-500/20 text-yellow-400">
+                            IN MEETING
+                          </span>
+                        )}
+                        {d.status.status === "break" && (
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-yellow-500/20 text-yellow-400">
+                            BREAK
+                          </span>
+                        )}
+                        {d.status.status === "waiting" && (
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-purple-500/20 text-purple-400">
+                            WAITING
                           </span>
                         )}
                       </td>
@@ -341,7 +395,7 @@ export default function LiveBzDisplay() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                className="top-0 left-0 fixed min-h-screen w-full z-[99999] bg-neutral-900/90 backdrop-blur-sm"
+                className="top-0 left-0 fixed geist min-h-screen w-full z-[99999] bg-neutral-900/90 backdrop-blur-sm"
               >
                 <motion.div
                   initial={{ y: "100%" }}
@@ -383,14 +437,7 @@ export default function LiveBzDisplay() {
                   </div>
 
                   <div className="flex items-center justify-between border-t border-gray-800 pt-10">
-                    <div className="text-gray-400 text-2xl">
-                      Last Updated:{" "}
-                      {currentTime
-                        ? moment
-                            .unix(Number(currentTime))
-                            .format("MMMM D, YYYY hh:mm:ss A")
-                        : "Initializing..."}
-                    </div>
+                    <div></div>
                     <motion.div
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
@@ -428,7 +475,7 @@ export default function LiveBzDisplay() {
           </div>
           <button
             onClick={() => setBegin(true)}
-            className="mt-10 bg-emerald-700 px-7 py-2 rounded-md font-[700]"
+            className="mt-10 bg-emerald-700 px-7 py-2 rounded-md font-[400] geist"
           >
             Start BizMatch Live Display
           </button>

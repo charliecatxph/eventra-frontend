@@ -1,28 +1,252 @@
-import { bizmatchSlice } from "@/features/attendBizmatchSlice";
+import {
+  bizmatchSlice,
+  setSupplierAccount,
+} from "@/features/attendBizmatchSlice";
 import { CircularProgress } from "@mui/material";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
+  CircleDashed,
   Clock,
   DoorOpen,
   User,
   UserCheck,
   Users,
   X,
+  Coffee,
+  UserCog,
+  Timer,
+  Clock4,
+  CircleFadingPlus,
 } from "lucide-react";
 import moment from "moment";
 import { useRouter } from "next/router";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useState, useEffect } from "react";
+import { useClickOutside } from "@/hooks/UseClickOutside";
+import axios from "axios";
+import { useModal } from "@/components/Modal/ModalContext";
+
+type SupplierStatus = "open" | "closed" | "in_meeting" | "break" | "waiting";
+
+const statusIcons = {
+  open: (
+    <UserCheck className="text-emerald-600" size="16px" strokeWidth={"2"} />
+  ),
+  closed: <X className="text-red-600" size="16px" strokeWidth={"2"} />,
+  break: <Coffee className="text-amber-600" size="16px" strokeWidth={"2"} />,
+  waiting: <Timer className="text-purple-600" size="16px" strokeWidth={"2"} />,
+};
+
+const statusColors = {
+  open: "bg-emerald-100 text-emerald-700",
+  closed: "bg-red-100 text-red-700",
+  break: "bg-amber-100 text-amber-700",
+  waiting: "bg-purple-100 text-purple-700",
+};
+
+const kvStat = {
+  open: "Open",
+  closed: "Closed",
+  in_meeting: "In Meeting",
+  break: "Break",
+  waiting: "Waiting",
+};
+
+interface TimeSlot {
+  startT: string;
+  status: {
+    status: string;
+    name: string;
+    orgN: string;
+  };
+}
+
+const AnimatedTimeDigit = ({ digit }: { digit: string }) => (
+  <motion.span
+    key={digit}
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 10 }}
+    transition={{ duration: 0.15 }}
+    className="inline-block w-[0.6em] text-center"
+  >
+    {digit}
+  </motion.span>
+);
+
+const AnimatedTime = ({ time }: { time: string }) => {
+  // Split time into positions (HH:MM:SS AM/PM)
+  const timeDigits = {
+    hour1: time.charAt(0),
+    hour2: time.charAt(1),
+    colon1: time.charAt(2),
+    min1: time.charAt(3),
+    min2: time.charAt(4),
+    colon2: time.charAt(5),
+    sec1: time.charAt(6),
+    sec2: time.charAt(7),
+    space: time.charAt(8),
+    ampm1: time.charAt(9),
+    ampm2: time.charAt(10),
+  };
+
+  return (
+    <div className="inline-flex">
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`h1-${timeDigits.hour1}`}
+          digit={timeDigits.hour1}
+        />
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`h2-${timeDigits.hour2}`}
+          digit={timeDigits.hour2}
+        />
+      </AnimatePresence>
+      <span>:</span>
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`m1-${timeDigits.min1}`}
+          digit={timeDigits.min1}
+        />
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`m2-${timeDigits.min2}`}
+          digit={timeDigits.min2}
+        />
+      </AnimatePresence>
+      <span>:</span>
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`s1-${timeDigits.sec1}`}
+          digit={timeDigits.sec1}
+        />
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`s2-${timeDigits.sec2}`}
+          digit={timeDigits.sec2}
+        />
+      </AnimatePresence>
+      <span>&nbsp;</span>
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`ap1-${timeDigits.ampm1}`}
+          digit={timeDigits.ampm1}
+        />
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        <AnimatedTimeDigit
+          key={`ap2-${timeDigits.ampm2}`}
+          digit={timeDigits.ampm2}
+        />
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function SupplierTimesheetDisplay() {
+  const dispatch = useDispatch();
+  const modal = useModal();
   const router = useRouter();
   const bizData = useSelector(bizmatchSlice);
   const { timeslot } = router.query;
+  const [currentTime, setCurrentTime] = useState<string>("");
+  const [currentStatus, setCurrentStatus] = useState<SupplierStatus>("open");
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+
+  const statusPickerRef = useClickOutside<HTMLDivElement>(() => {
+    setShowStatusPicker(false);
+  });
+
+  useEffect(() => {
+    setCurrentStatus(bizData.supplier.open as SupplierStatus);
+  }, [bizData]);
+
+  useEffect(() => {
+    let worker: Worker;
+
+    try {
+      if (typeof window !== "undefined") {
+        worker = new window.Worker("/timeWorker.js");
+
+        worker.onmessage = (event) => {
+          if (event.data.error) {
+            console.error("Worker error:", event.data.error);
+            return;
+          }
+          setCurrentTime(moment(event.data).utcOffset(8).format("hh:mm:ss A"));
+        };
+
+        worker.onerror = (error) => {
+          console.error("Worker error:", error);
+        };
+
+        // Send initial message to start the timer
+        worker.postMessage("start");
+      }
+    } catch (error) {
+      console.error("Failed to initialize worker:", error);
+      // Fallback to regular interval if worker fails
+      const interval = setInterval(() => {
+        setCurrentTime(moment().format("hh:mm:ss A"));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+
+    return () => {
+      if (worker) {
+        worker.terminate();
+      }
+    };
+  }, []);
+
+  const handleStatusChange = async (status: SupplierStatus) => {
+    if (!status) return;
+
+    try {
+      modal.hide();
+      modal.show({
+        type: "loading",
+        title: "Changing status...",
+        color: "blue",
+      });
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API}/change-supplier-status`,
+        {
+          suplId: bizData.supplier.id,
+          bzId: bizData.supplier.bizmatcheventId,
+          newStatus: status,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${bizData.supplier.acsTok}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      modal.hide();
+      dispatch(
+        setSupplierAccount({
+          ...bizData.supplier,
+          open: status,
+        })
+      );
+    } catch (e) {
+      router.push("/attend-bizmatch");
+    }
+  };
 
   return (
     <>
-      {!timeslot && (
-        <>
+      <div className="flex justify-between flex-col md:flex-row md:items-center">
+        <div className="md:basis-1/2">
           <h1 className="font-[500] text-xl md:text-2xl">
             Hello,{" "}
             <span className="font-[700] text-emerald-700">
@@ -31,129 +255,260 @@ export default function SupplierTimesheetDisplay() {
             !
           </h1>
           <p className="text-neutral-800 text-sm md:text-base">
-            Your timesheet and appointments for this event is as displayed
-            below.
+            Your schedule for this event is as displayed below.
           </p>
-
-          {bizData.supplier.timeslots.length === 0 &&
-            !bizData.supplier.fetching.requesting &&
-            bizData.supplier.fetching.status && (
-              <h1 className="mt-5 text-center">No timeslots issued.</h1>
-            )}
-          {bizData.supplier.fetching.requesting && (
+        </div>
+        <div className="flex justify-between md:justify-end gap-5 mt-2 md:mt-0 md:items-center md:basis-1/2">
+          <div className="bg-white px-7 py-5 w-[100%] flex flex-col gap-2 rounded-lg shadow-sm shadow-neutral-100">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              key={122}
-              className="loading-state h-[500px] w-full flex items-center justify-center gap-5"
+              className="flex items-center justify-between"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
             >
-              <CircularProgress
-                size={20}
-                thickness={5}
-                disableShrink
-                sx={{
-                  color: "black", // spinner stroke
-                }}
-              />
-              Getting timeslots...
+              <p className="text-sm font-[500]">Current Time:</p>
+              <p className="font-[300] text-left md:text-right">
+                {currentTime ? (
+                  <AnimatedTime time={currentTime} />
+                ) : (
+                  <>Synchronizing...</>
+                )}
+              </p>
             </motion.div>
-          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 my-5">
-            {bizData.supplier.timeslots &&
-              !bizData.supplier.fetching.requesting &&
-              bizData.supplier.fetching.status &&
-              bizData.supplier.timeslots.map((d, i) => {
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-[500]">Your status:</p>
+              <div className="relative flex justify-end">
+                <motion.button
+                  className={`px-4 text-sm py-2 rounded-lg flex font-[500] items-center gap-2 ${
+                    statusColors[bizData.supplier.open]
+                  }`}
+                  onClick={() => setShowStatusPicker(!showStatusPicker)}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {statusIcons[bizData.supplier.open]}
+                  {kvStat[bizData.supplier.open]}
+                </motion.button>
+
+                <AnimatePresence>
+                  {showStatusPicker && (
+                    <motion.div
+                      ref={statusPickerRef}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute top-[100%] right-0 mt-2 bg-white rounded-lg shadow-lg p-2 z-50 min-w-[200px]"
+                    >
+                      {Object.keys(statusIcons).map((status) => (
+                        <motion.button
+                          key={status}
+                          className={`w-full px-4 py-2 rounded-lg flex font-[500] items-center gap-2 mb-1 last:mb-0 ${
+                            bizData.supplier.open === status
+                              ? statusColors[status as SupplierStatus]
+                              : "hover:bg-neutral-50"
+                          }`}
+                          onClick={() => {
+                            setCurrentStatus(status as SupplierStatus);
+                            setShowStatusPicker(false);
+                            handleStatusChange(status as SupplierStatus);
+                          }}
+                        >
+                          {statusIcons[status as SupplierStatus]}
+                          {kvStat[status]}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {bizData.supplier.timeslots.length === 0 &&
+        !bizData.supplier.fetching.requesting &&
+        bizData.supplier.fetching.status && (
+          <h1 className="mt-5 text-center">No timeslots issued.</h1>
+        )}
+      {bizData.supplier.fetching.requesting && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          key={122}
+          className="loading-state h-[500px] w-full flex items-center justify-center gap-5"
+        >
+          <CircularProgress
+            size={20}
+            thickness={5}
+            disableShrink
+            sx={{
+              color: "black", // spinner stroke
+            }}
+          />
+          Getting timeslots...
+        </motion.div>
+      )}
+
+      <div className=" bg-white p-5 mt-5 rounded-lg">
+        <div>
+          <h1 className="flex gap-3 font-[600] text-lg items-center">
+            <Clock />
+            Today's Schedule
+          </h1>
+          <p className="mt-1 text-sm">Your timeslots for today:</p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 mt-5">
+          {bizData.supplier.timeslots &&
+            !bizData.supplier.fetching.requesting &&
+            bizData.supplier.fetching.status &&
+            bizData.supplier.timeslots.map((d, i: number) => {
+              if (d.status.status === "OPEN") {
                 return (
                   <>
-                    <div
-                      onClick={() => router.push(`?timeslot=${d.id}`)}
-                      className="bg-white geist rounded-md shadow-sm shadow-neutral-100 overflow-hidden cursor-pointer"
-                    >
-                      <div className="p-3 bg-emerald-700 text-white">
-                        <p className="font-[600] flex items-center gap-2">
-                          <Clock size="17px" />{" "}
-                          {moment(d.startT).format("hh:mm A")} -{" "}
-                          {moment(d.endT).format("hh:mm A")}
-                        </p>
-                      </div>
-                      <div className="px-3 py-3 ">
-                        <div className="">
-                          <p className="text-sm font-[500]">Attendees</p>
-                          <div className="grid grid-cols-2 gap-2 items-center text-sm">
-                            <div className="flex gap-2 items-center">
-                              <div className="icon bg-emerald-200 text-emerald-700 size-10 rounded-lg grid place-content-center">
-                                <Check size="18px" />
-                              </div>
-                              <p className="flex flex-col">
-                                <span className="block font-bold text-lg">
-                                  {
-                                    d.registrations.filter(
-                                      (d) => d.attended === "attended"
-                                    ).length
-                                  }
-                                </span>
-                                <span className="text-xs">Complete</span>
-                              </p>
-                            </div>
-
-                            <div className="flex gap-2 items-center">
-                              <div className="icon bg-blue-200 text-blue-700 size-10 rounded-lg grid place-content-center">
-                                <Users size="18px" />
-                              </div>
-                              <p className="flex flex-col">
-                                <span className="block font-bold text-lg">
-                                  {
-                                    d.registrations.filter(
-                                      (d) => d.attended === "present"
-                                    ).length
-                                  }
-                                </span>
-                                <span className="text-xs">Present</span>
-                              </p>
-                            </div>
-
-                            <div className="flex gap-2 items-center">
-                              <div className="icon bg-yellow-200 text-yellow-700 size-10 rounded-lg grid place-content-center">
-                                <UserCheck size="18px" />
-                              </div>
-                              <p className="flex flex-col">
-                                <span className="block font-bold text-lg">
-                                  {
-                                    d.registrations.filter(
-                                      (d) => d.attended === "registered"
-                                    ).length
-                                  }
-                                </span>
-                                <span className="text-xs">Present</span>
-                              </p>
-                            </div>
-                            <div className="flex gap-2 items-center">
-                              <div className="icon bg-red-200 text-red-700 size-10 rounded-lg grid place-content-center">
-                                <DoorOpen size="18px" />
-                              </div>
-                              <p className="flex flex-col">
-                                <span className="block font-bold text-lg">
-                                  {
-                                    d.registrations.filter(
-                                      (d) => d.attended === "no_show"
-                                    ).length
-                                  }
-                                </span>
-                                <span className="text-xs">No-Show</span>
-                              </p>
-                            </div>
-                          </div>
+                    <div className="p-5 bg-neutral-50/50 border-1 border-neutral-200 rounded-lg flex justify-between">
+                      <div className="flex gap-5 items-center basis-[50%]">
+                        <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs md:text-sm">
+                          {moment(d.startT).format("hh:mm A")}
                         </div>
+                        <div>
+                          <p className="flex items-center gap-2 font-[500] text-sm">
+                            <CircleDashed size="18px" className="shrink-0" />{" "}
+                            Slot Available
+                          </p>
+                        </div>
+                      </div>
+                      <div className="basis-[50%] flex justify-end items-center">
+                        <p className="bg-neutral-100 w-max px-5 py-1 rounded-full font-[600] text-sm">
+                          OPEN
+                        </p>
                       </div>
                     </div>
                   </>
                 );
-              })}
-          </div>
-        </>
-      )}
+              } else if (d.status.status === "SCHEDULED") {
+                return (
+                  <>
+                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
+                      <div className="p-5 bg-blue-50/50 border-1 border-blue-200 rounded-lg flex justify-between">
+                        <div className="flex gap-5 items-center basis-[50%]">
+                          <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs md:text-sm">
+                            {moment(d.startT).format("hh:mm A")}
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 font-[600] text-xs">
+                              {d.status.name}
+                            </p>
+                            <p className="text-[10px] md:text-xs">
+                              {d.status.orgN}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="basis-[50%] flex justify-end items-center">
+                          <div className="flex flex-col items-end gap-1">
+                            <p className="bg-blue-100 text-blue-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                              SCHEDULED
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </>
+                );
+              } else if (d.status.status === "REOPENED") {
+                return (
+                  <>
+                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
+                      <div className="p-5 bg-yellow-50/50 border-1 border-yellow-200 rounded-lg flex justify-between">
+                        <div className="flex gap-5 items-center basis-[50%]">
+                          <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs">
+                            {moment(d.startT).format("hh:mm A")}
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 font-[500] text-xs md:text-sm">
+                              <CircleFadingPlus
+                                size="18px"
+                                className="shrink-0"
+                              />{" "}
+                              Slot Re-opened
+                            </p>
+                          </div>
+                        </div>
+                        <div className="basis-[50%] flex justify-end items-center">
+                          <div className="flex flex-col items-end gap-1">
+                            <p className="bg-yellow-100 text-yellow-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                              REOPENED
+                            </p>
+                            <p className="hidden md:block text-xs italic text-neutral-800 mt-1  text-right ">
+                              Previous Attendee: {d.status.name},{" "}
+                              {d.status.orgN}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </>
+                );
+              } else if (d.status.status === "ATTENDED") {
+                return (
+                  <>
+                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
+                      <div className="p-5 bg-emerald-50/50 border-1 border-emerald-200 rounded-lg flex justify-between">
+                        <div className="flex gap-5 items-center basis-[50%]">
+                          <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs md:text-sm">
+                            {moment(d.startT).format("hh:mm A")}
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 font-[600] text-xs">
+                              {d.status.name}
+                            </p>
+                            <p className="text-[10px] md:text-xs">
+                              {d.status.orgN}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="basis-[50%] flex justify-end items-center">
+                          <div className="flex flex-col items-end gap-1">
+                            <p className="bg-emerald-100 text-emerald-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                              ATTENDED
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </>
+                );
+              } else if (d.status.status === "IN MEETING") {
+                return (
+                  <>
+                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
+                      <div className="p-5 bg-purple-50/50 border-1 border-purple-200 rounded-lg flex justify-between">
+                        <div className="flex gap-5 items-center basis-[50%]">
+                          <div className="basis-[20%] text-center font-[600] text-neutral-800">
+                            {moment(d.startT).format("hh:mm A")}
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 font-[600] text-sm">
+                              {d.status.name}
+                            </p>
+                            <p className="text-xs">{d.status.orgN}</p>
+                          </div>
+                        </div>
+                        <div className="basis-[50%] flex justify-end items-center">
+                          <div className="flex flex-col items-end gap-1">
+                            <p className="bg-purple-100 text-purple-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                              IN MEETING
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </>
+                );
+              }
+            })}
+        </div>
+      </div>
     </>
   );
 }

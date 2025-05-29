@@ -61,7 +61,7 @@ interface FormData {
     name: string;
     website: string;
     timeslots: any;
-    open: boolean;
+    open: string;
     acsTok: string;
     fetching: {
       requesting: boolean;

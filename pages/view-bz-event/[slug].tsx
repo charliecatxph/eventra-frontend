@@ -33,6 +33,9 @@ import AllSuppliers from "@/components/ViewBizMatchEvent/AllSuppliers";
 import AllClients from "@/components/ViewBizMatchEvent/AllClients";
 import OccupancyAnalytics from "@/components/ViewBizMatchEvent/OccupancyAnalytics";
 import EditBizMatchEvent from "@/components/EditBizMatchEvent";
+import ViewClientRegistration from "@/components/ViewBizMatchEvent/ViewClientRegistration";
+
+type ACTScreen = "main" | "edit" | "client_reg";
 
 export default function ViewBzEvent() {
   const modal = useModal();
@@ -42,27 +45,29 @@ export default function ViewBzEvent() {
   const bzData = useSelector(bizDataSlice);
   const bzData__static = useRef(null);
 
+  const [activeScreen, setActiveScreen] = useState<ACTScreen>("main");
+
   const socketRef = useRef<Socket>(null);
 
   const [render, setRender] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<string>("");
-  const [showEditEvent, setShowEditEvent] = useState(false);
+
+  const [currentAttendeeRegistration, setCurrentAttendeeRegistration] =
+    useState<any>(null);
+
+  const { atnId } = router.query;
+
+  useEffect(() => {
+    if (!atnId) return;
+    setActiveScreen("client_reg");
+  }, [atnId]);
+
   useSecureRoute(() => {
     setRender(true);
   });
 
   const fetchBizMatchEvent = async () => {
     try {
-      setConnectionStatus("Getting event information...");
-      dispatch(
-        setFetching({
-          mainEvent: true,
-          bookingOverview: true,
-          cts: true,
-          clients: true,
-          suppliers: true,
-        })
-      );
       const evData = await getBizMatchEvent(
         "all",
         router.query.slug as string,
@@ -103,21 +108,6 @@ export default function ViewBzEvent() {
       dispatch(setInitialized(true));
 
       setConnectionStatus("Establishing live socket connection...");
-      socketRef.current = io(process.env.NEXT_PUBLIC_IO, {
-        withCredentials: true,
-      });
-      setConnectionStatus("Preparing live data stream...");
-
-      dispatch(
-        setFetching({
-          ...bzData.fetching,
-          mainEvent: false,
-          bookingOverview: false,
-          cts: false,
-          suppliers: false,
-          clients: false,
-        })
-      );
     } catch (e) {
       router.push("/dashboard");
     }
@@ -176,8 +166,9 @@ export default function ViewBzEvent() {
 
   useEffect(() => {
     if (!router.query.slug || !appData.acsTok) return;
+
     fetchBizMatchEvent();
-  }, [router.query.slug, appData.acsTok]);
+  }, [router.query.slug, appData.acsTok, bzData.initialized]);
 
   useEffect(() => {
     bzData__static.current = bzData;
@@ -276,6 +267,12 @@ export default function ViewBzEvent() {
                     ? connectionStatus
                     : bzData.data.name}
                 </p>
+                {atnId && (
+                  <>
+                    <ChevronRight className="text-neutral-600" />{" "}
+                    <p className="font-[500]">Client</p>
+                  </>
+                )}
               </h1>
             </div>
             <div className="flex gap-2 h-full py-3 border-l-2 border-neutral-100 pl-5 px-3">
@@ -287,7 +284,7 @@ export default function ViewBzEvent() {
         <section className="flex" style={{ height: "calc(100vh - 60px)" }}>
           <aside className="w-[264px] bg-neutral-50 h-full flex flex-col justify-between py-5">
             <ul className="flex flex-col gap-2 px-3 select-none">
-              {!showEditEvent && (
+              {activeScreen === "main" && (
                 <li
                   onClick={() => router.push("/dashboard")}
                   className="mt-2 py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center cursor-pointer"
@@ -296,24 +293,27 @@ export default function ViewBzEvent() {
                   Go To Dashboard
                 </li>
               )}
-              <li
-                onClick={() => {
-                  setShowEditEvent(!showEditEvent);
-                }}
-                className="py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center cursor-pointer"
-              >
-                {showEditEvent ? (
-                  <>
-                    <ArrowLeft size="18px" />
-                    Back
-                  </>
-                ) : (
-                  <>
-                    <Pencil size="18px" />
-                    Edit Event
-                  </>
-                )}
-              </li>
+              {(activeScreen === "client_reg" || activeScreen === "edit") && (
+                <li
+                  onClick={() => {
+                    router.push(`/view-bz-event/${router.query.slug}`);
+                    setActiveScreen("main");
+                  }}
+                  className=" py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center cursor-pointer"
+                >
+                  <ArrowLeft size="18px" />
+                  Go Back
+                </li>
+              )}
+              {activeScreen === "main" && (
+                <li
+                  onClick={() => setActiveScreen("edit")}
+                  className=" py-2 text-neutral-700 hover:bg-neutral-100 px-4 rounded-lg flex gap-2 items-center cursor-pointer"
+                >
+                  <Pencil size="18px" />
+                  Edit Event
+                </li>
+              )}
 
               <li
                 onClick={() => {
@@ -357,55 +357,70 @@ export default function ViewBzEvent() {
             style={{ width: "calc(100vw - 264px)" }}
           >
             <div className="h-full w-full">
-              {showEditEvent ? (
+              {activeScreen === "edit" && (
                 <EditBizMatchEvent
                   eventData={bzData.data}
                   suppliers={bzData.data.suppliers}
-                  onCancel={() => setShowEditEvent(false)}
+                  onCancel={() => setActiveScreen("main")}
                 />
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="h-[250px] bg-[#212121] shadow-sm shadow-neutral-50 rounded-md oveflow-hidden">
-                    <HighlightedBizMatchEvent
-                      isFetching={bzData.fetching.mainEvent}
-                      data={bzData.data}
-                      notInDashboard
-                    />
-                  </div>
-                  <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                    <BizEvFirstBentoAnalytics
-                      isFetching={bzData.fetching.bookingOverview}
-                      data={bzData.data.stats}
-                    />
-                  </div>
-                  <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                    <BizEvSecondBentoAnalytics
-                      isFetching={bzData.fetching.cts}
-                      data={bzData.data.stats}
-                    />
-                  </div>
+              )}
 
-                  <div className="col-span-2 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
-                    <div className="flex flex-col ">
-                      <AllSuppliers
+              {activeScreen === "main" && (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="h-[250px] bg-[#212121] shadow-sm shadow-neutral-50 rounded-md oveflow-hidden">
+                      <HighlightedBizMatchEvent
+                        isFetching={bzData.fetching.mainEvent}
+                        data={bzData.data}
+                        notInDashboard
+                      />
+                    </div>
+                    <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+                      <BizEvFirstBentoAnalytics
+                        isFetching={bzData.fetching.bookingOverview}
+                        data={bzData.data.stats}
+                      />
+                    </div>
+                    <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+                      <BizEvSecondBentoAnalytics
+                        isFetching={bzData.fetching.cts}
+                        data={bzData.data.stats}
+                      />
+                    </div>
+
+                    <div className="col-span-2 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
+                      <div className="flex flex-col ">
+                        <AllSuppliers
+                          isFetching={bzData.fetching.suppliers}
+                          data={bzData.data.suppliers}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-span-1 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
+                      <AllClients
+                        isFetching={bzData.fetching.clients}
+                        data={bzData.data.clients}
+                        // drill
+                        setCurrentAttendeeRegistration={(dx) => {
+                          setCurrentAttendeeRegistration(dx);
+                          setActiveScreen("client_reg");
+                        }}
+                      />
+                    </div>
+                    <div className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
+                      <OccupancyAnalytics
                         isFetching={bzData.fetching.suppliers}
                         data={bzData.data.suppliers}
                       />
                     </div>
                   </div>
-                  <div className="col-span-1 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
-                    <AllClients
-                      isFetching={bzData.fetching.clients}
-                      data={bzData.data.clients}
-                    />
-                  </div>
-                  <div className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
-                    <OccupancyAnalytics
-                      isFetching={bzData.fetching.suppliers}
-                      data={bzData.data.suppliers}
-                    />
-                  </div>
-                </div>
+                </>
+              )}
+
+              {activeScreen === "client_reg" && (
+                <>
+                  <ViewClientRegistration />
+                </>
               )}
             </div>
           </div>

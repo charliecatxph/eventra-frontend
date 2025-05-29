@@ -42,7 +42,7 @@ const editSupplier__defaults = {
     value: "",
     err: "",
   },
-  status: false,
+  status: "open",
   description: {
     value: "",
     err: "",
@@ -80,7 +80,7 @@ export default function AllSuppliers({ isFetching, data }) {
       file: null, // File object when user uploads
       err: "",
     },
-    status: false,
+    status: "open",
     description: {
       value: "",
       err: "",
@@ -160,10 +160,7 @@ export default function AllSuppliers({ isFetching, data }) {
           formData.append("location", editSupplier.location.value);
           formData.append("acsCode", editSupplier.accessCode.value);
           formData.append("description", editSupplier.description.value);
-          formData.append(
-            "open",
-            editSupplier.status === "true" ? "true" : "false"
-          );
+          formData.append("status", editSupplier.status);
 
           // Only append file if user has uploaded one
           if (editSupplier.logo.file) {
@@ -283,7 +280,7 @@ export default function AllSuppliers({ isFetching, data }) {
           formData.append("location", location);
           formData.append("acsCode", acsCode);
           formData.append("description", description || "");
-          formData.append("open", (!open).toString());
+          formData.append("status", open ? "open" : "closed");
 
           await axios
             .post(`${process.env.NEXT_PUBLIC_API}/update-supplier`, formData, {
@@ -558,17 +555,14 @@ export default function AllSuppliers({ isFetching, data }) {
                         </p>
                       </div>
                       <div>
-                        <label
-                          htmlFor="attended"
-                          className="font-[500] text-sm"
-                        >
+                        <label htmlFor="status" className="font-[500] text-sm">
                           Status
                           <span className="font-[500] text-red-600">*</span>
                         </label>
                         <select
-                          name="attended"
-                          id=""
-                          value={editSupplier.status.toString()}
+                          name="status"
+                          id="status"
+                          value={editSupplier.status}
                           onChange={(d) => {
                             setEditSupplier((pv) => ({
                               ...pv,
@@ -577,8 +571,10 @@ export default function AllSuppliers({ isFetching, data }) {
                           }}
                           className="mt-1.5 w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
                         >
-                          <option value="true">OPEN</option>
-                          <option value="false">CLOSED</option>
+                          <option value="open">Open</option>
+                          <option value="closed">Closed</option>
+                          <option value="in_meeting">In Meeting</option>
+                          <option value="break">Break</option>
                         </select>
                       </div>
                     </div>
@@ -687,39 +683,41 @@ export default function AllSuppliers({ isFetching, data }) {
                               </div>
 
                               <div className="px-5 py-2  flex items-center whitespace-nowrap">
-                                <p className="font-[400]">
-                                  {d.status.isOpen && (
-                                    <span className="text-[11px] px-4 py-1 bg-emerald-50 border-1 border-emerald-600 text-emerald-600 w-max rounded-full text-xs">
-                                      OPEN
+                                {(() => {
+                                  const statusMap = {
+                                    open: "Open",
+                                    closed: "Closed",
+                                    in_meeting: "In Meeting",
+                                    break: "Break",
+                                  };
+                                  const statusColors = {
+                                    open: "bg-emerald-100/70 text-emerald-700 border-emerald-300",
+                                    closed:
+                                      "bg-red-100/70 text-red-700 border-red-300",
+                                    in_meeting:
+                                      "bg-blue-100/70 text-blue-700 border-blue-300",
+                                    break:
+                                      "bg-amber-100/70 text-amber-700 border-amber-300",
+                                  };
+                                  // Normalize status string
+                                  let statKey = (d.status.status || "")
+                                    .toLowerCase()
+                                    .replace(/ /g, "_");
+                                  if (!statusMap[statKey]) statKey = "closed"; // fallback
+                                  return (
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${
+                                        statusColors[statKey] ||
+                                        "bg-neutral-200 text-neutral-700 border-neutral-700"
+                                      }`}
+                                    >
+                                      {statusMap[statKey] || d.status.status}
                                     </span>
-                                  )}
-
-                                  {!d.status.isOpen && (
-                                    <span className="text-[11px] px-4 py-1 bg-red-50 border-1 border-red-600 text-red-600 w-max rounded-full text-xs">
-                                      CLOSED
-                                    </span>
-                                  )}
-                                </p>
+                                  );
+                                })()}
                               </div>
 
                               <div className="bg-white px-5 py-2 text-right flex items-center gap-2 justify-end sticky z-[10] right-0">
-                                <button
-                                  onClick={() => {
-                                    statusOverride({
-                                      suplId: d.id,
-                                      name: d.name,
-                                      location: d.location,
-                                      website: d.website,
-                                      country: d.country,
-                                      acsCode: d.accessCode,
-                                      open: d.status.isOpen,
-                                      description: d.description,
-                                    });
-                                  }}
-                                  className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
-                                >
-                                  <Repeat size="15px" />
-                                </button>
                                 <button
                                   onClick={() => {
                                     setEditSupplier({
@@ -746,7 +744,7 @@ export default function AllSuppliers({ isFetching, data }) {
                                         value: d.logoSecUrl,
                                         err: "",
                                       },
-                                      status: d.status.isOpen,
+                                      status: d.status.status,
                                       description: {
                                         value: d.description || "",
                                         err: "",

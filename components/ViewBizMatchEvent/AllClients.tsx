@@ -1,12 +1,24 @@
-import { Briefcase, Check, Mail, Pencil, Trash } from "lucide-react";
+import {
+  ArrowUpRight,
+  Briefcase,
+  Check,
+  Mail,
+  Pencil,
+  Trash,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CircularProgress } from "@mui/material";
 import { useModal } from "@/components/Modal/ModalContext";
 import axios from "axios";
 import { selectApp } from "@/features/appSlice";
 import { useSelector } from "react-redux";
-
-export default function AllClients({ isFetching, data }) {
+import { useRouter } from "next/router";
+export default function AllClients({
+  isFetching,
+  data,
+  setCurrentAttendeeRegistration,
+}) {
+  const router = useRouter();
   const modal = useModal();
   const appData = useSelector(selectApp);
 
@@ -139,6 +151,17 @@ export default function AllClients({ isFetching, data }) {
                                 </div>
 
                                 <div className="bg-white px-5 py-2 text-right flex items-center gap-2 justify-end sticky z-[10] right-0">
+                                  <button
+                                    onClick={() =>
+                                      router.push(
+                                        `/view-bz-event/${router.query.slug}?atnId=${d.id}`
+                                      )
+                                    }
+                                    className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                  >
+                                    <ArrowUpRight size="15px" />
+                                  </button>
+
                                   <button
                                     onClick={() =>
                                       handleDeleteClient(

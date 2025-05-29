@@ -62,8 +62,6 @@ export default function SupplierMain() {
 
   const [userDropdown, setUserDropdown] = useState<boolean>(false);
 
-  const [render, setRender] = useState<boolean>(false);
-
   const bizData_supplier__static = useRef(null);
 
   useEffect(() => {
@@ -96,7 +94,7 @@ export default function SupplierMain() {
           logoSecUrl: decode.logoSecUrl,
           name: decode.name,
           website: decode.website,
-          open: decode.status.isOpen,
+          open: decode.status.status,
         })
       );
     } catch (err) {
@@ -213,12 +211,6 @@ export default function SupplierMain() {
 
   const fetchTimeslots = async () => {
     try {
-      dispatch(
-        setSupplierFetchingStatus({
-          requesting: true,
-          status: false,
-        })
-      );
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API}/get-supplier-timeslots`,
         {
@@ -234,20 +226,29 @@ export default function SupplierMain() {
       );
 
       dispatch(setSupplierTimeslots([...res.data.data.timeslots]));
-      dispatch(
-        setSupplierFetchingStatus({
-          requesting: false,
-          status: true,
-        })
-      );
     } catch (e) {
+      await handleLogout();
       router.push("/attend-bizmatch");
     }
   };
 
   useEffect(() => {
     if (!timeslot) {
-      fetchTimeslots();
+      dispatch(
+        setSupplierFetchingStatus({
+          requesting: true,
+          status: false,
+        })
+      );
+      fetchTimeslots().then((d) => {
+        dispatch(
+          setSupplierFetchingStatus({
+            requesting: false,
+            status: true,
+          })
+        );
+      });
+
       return;
     }
     dispatch(
@@ -290,6 +291,7 @@ export default function SupplierMain() {
         });
 
         socket.on("WS-EVN_BIZ_SUPPLIER_UPDATE", () => {
+          fetchTimeslots();
           handleAttendeeStateChange(
             bizData_supplier__static.current.timeslot.id
           );
@@ -325,45 +327,6 @@ export default function SupplierMain() {
     };
   }, [bizData.supplier.id]);
 
-  useEffect(() => {
-    if (bizData.supplier.id) return setRender(true);
-    axios
-      .post(
-        `${process.env.NEXT_PUBLIC_API}/get-supplier-data-biz`,
-        {},
-        { withCredentials: true }
-      )
-      .then((d) => {
-        const decode = jwt.decode(d.data.token);
-
-        dispatch(
-          setSupplierAccount({
-            ...bizData.supplier,
-            id: decode.id,
-            isLoggedIn: true,
-            bizmatcheventId: decode.bizmatcheventId,
-            country: decode.country,
-            description: decode.description,
-            location: decode.location,
-            logoSecUrl: decode.logoSecUrl,
-            name: decode.name,
-            website: decode.website,
-            timeslots: [],
-            open: decode.status.isOpen,
-          })
-        );
-        dispatch(setUserType("supplier"));
-
-        router.push("/attend-bizmatch/supplier");
-        setRender(true);
-      })
-      .catch((e) => {
-        setRender(true);
-      });
-  }, []);
-
-  if (!render) return <></>;
-
   return (
     <>
       <header className="sticky top-0 bg-white shadow-sm shadow-neutral-50 z-[9999]">
@@ -377,7 +340,7 @@ export default function SupplierMain() {
               />
               <div className="hidden md:block">
                 <h1 className="text-lg font-[600] geist">MPOF2025 BizMatch</h1>
-                <p className="text-xs">Supplier</p>
+                <p className="text-xs geist font-[500]">Supplier</p>
               </div>
             </div>
             <div className="relative">
@@ -425,11 +388,11 @@ export default function SupplierMain() {
           </div>
         </div>
       </header>
-      <section>
+      <section className="geist bg-neutral-50">
         <div className="container w-full max-w-[1300px] px-5 mx-auto">
-          <div className="wrapper my-5">
-            <SupplierTimesheetDisplay />
-            <TimesheetDetail />
+          <div className="wrapper pt-5">
+            {!timeslot && <SupplierTimesheetDisplay />}
+            {timeslot && <TimesheetDetail />}
           </div>
         </div>
       </section>

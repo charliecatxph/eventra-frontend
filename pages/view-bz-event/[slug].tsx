@@ -108,7 +108,6 @@ export default function ViewBzEvent() {
       dispatch(setInitialized(true));
 
       setConnectionStatus("Establishing live socket connection...");
-      
       if (!socketRef.current) {
         socketRef.current = io(process.env.NEXT_PUBLIC_IO, {
           withCredentials: true,
@@ -278,7 +277,7 @@ export default function ViewBzEvent() {
                     <ChevronRight className="text-neutral-600" />{" "}
                     <p className="font-[500]">Client</p>
                   </>
-                )Z}
+                )}
               </h1>
             </div>
             <div className="flex gap-2 h-full py-3 border-l-2 border-neutral-100 pl-5 px-3">

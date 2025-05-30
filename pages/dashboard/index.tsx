@@ -97,7 +97,6 @@ export default function Dashboard() {
   };
 
   const initialFetch = async () => {
-    console.log(dashData.initialized);
     if (dashData.initialized) setFetching(false);
     try {
       const getEventsReq = await getEvents(
@@ -189,9 +188,7 @@ export default function Dashboard() {
 
       setFetching(false);
       dispatch(setInitialized(true));
-    } catch (e) {
-      console.log(e);
-    }
+    } catch (e) {}
   };
 
   useEffect(() => {

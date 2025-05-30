@@ -1,49 +1,4 @@
-import React from "react";
-import { QRCodeCanvas } from "qrcode.react";
-import { createRoot } from "react-dom/client";
-
-interface QRProps {
-  eventName: string;
-  attendeeName: string;
-  organization: string;
-  position: string;
-  identifier: string;
-}
-
-export function printQR({
-  eventName,
-  attendeeName,
-  organization,
-  position,
-  identifier,
-}: QRProps) {
-  // Create a temporary container for rendering the QR code
-  const container = document.createElement("div");
-  container.style.position = "fixed";
-  container.style.left = "-9999px";
-  document.body.appendChild(container);
-
-  const root = createRoot(container);
-  root.render(
-    <QRCodeCanvas
-      value={`${process.env.NEXT_PUBLIC_DOMAIN}/passport?user=${identifier}`}
-      size={200}
-    />
-  );
-
-  // Allow QR to render before accessing canvas
-  setTimeout(() => {
-    const canvas = container.querySelector("canvas");
-    if (!canvas) return;
-
-    const qrCodeImageUrl = canvas.toDataURL();
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    printWindow.document.open();
-    printWindow.document.write(`
-    <html>
+<html>
     <head>
       <title>Print QR Code</title>
       <style>
@@ -56,8 +11,8 @@ export function printQR({
           flex-direction: column;
         align-items: center;
     
-          
-      
+          border: 1px gray dashed;
+          padding: 1rem;
           
           width: 8cm;
           height:6cm;
@@ -71,24 +26,21 @@ export function printQR({
           justify-content: center;
           flex-direction: column;
           gap: 5px;
-          font-family: "Arial", sans-serif;
+          font-family: "MS Gothic", sans-serif;
           width: 100%;
           height: 50%;
-        
         }
 
 
 
         .qr-code {
             height: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            width:50%;
         }
 
         .qr-code > img {
        
-            height: 65%;
+            height: 100%;
             
             aspect-ratio: 1/1;
         }
@@ -110,23 +62,23 @@ export function printQR({
 
 
         .atnd-name {
-          font-size: 1.6rem;
-          font-weight: 700;
+          font-size: 1.2rem;
+          font-weight: 600;
           text-align: center;
             word-break: break-all;
           text-transform:uppercase;
         }
 
         .atnd-org {
-          font-size: 0.7rem;
-          font-weight: 600;
+          font-size: 0.6rem;
+          font-weight: 500;
           text-align: center;
           text-transform:uppercase;
           word-break: break-all;
         }
       </style>
     </head>
-    <body onload="window.print(); window.close();">
+    <body>
       <div class="qr-cx">
         
         <div class="xct">
@@ -143,13 +95,4 @@ export function printQR({
       </div>
      
     </body>
-  </html>    `);
-    printWindow.document.close();
-
-    // Clean up
-    setTimeout(() => {
-      root.unmount();
-      document.body.removeChild(container);
-    }, 100);
-  }, 300); // Wait for QR to render
-}
+  </html>

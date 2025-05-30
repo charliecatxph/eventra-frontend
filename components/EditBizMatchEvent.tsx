@@ -31,7 +31,7 @@ export interface Supplier {
   website: string;
   description: string;
   accessCode: string;
-  status: { isOpen: boolean };
+  status: { status: string };
   location: string;
   timeslots: any[];
   attendedPercentage?: number;
@@ -169,7 +169,7 @@ export default function EditBizMatchEvent({
     country: string;
     accessCode: { value: string; err: string };
     logo: { value: string; file: File | null; err: string };
-    status: boolean;
+    status: string;
     description: { value: string; err: string };
   }>({
     active: false,
@@ -179,7 +179,7 @@ export default function EditBizMatchEvent({
     country: "PH",
     accessCode: { value: "", err: "" },
     logo: { value: "", file: null, err: "" },
-    status: true,
+    status: "open",
     description: { value: "", err: "" },
   });
 
@@ -193,7 +193,7 @@ export default function EditBizMatchEvent({
     country: string;
     accessCode: { value: string; err: string };
     logo: { value: string; file: File | null; err: string };
-    status: boolean;
+    status: string;
     description: { value: string; err: string };
   }>({
     active: false,
@@ -204,7 +204,7 @@ export default function EditBizMatchEvent({
     country: "PH",
     accessCode: { value: "", err: "" },
     logo: { value: "", file: null, err: "" },
-    status: true,
+    status: "open",
     description: { value: "", err: "" },
   });
 
@@ -242,7 +242,7 @@ export default function EditBizMatchEvent({
 
     if (validation.isValid) {
       const newSupplier: Supplier = {
-        id: Math.random().toString(36).substr(2, 9), // Temporary ID
+        id: Math.random().toString(36).substr(2, 9),
         logoSecUrl: addSupplier.logo.file
           ? URL.createObjectURL(addSupplier.logo.file)
           : addSupplier.logo.value,
@@ -251,11 +251,10 @@ export default function EditBizMatchEvent({
         website: addSupplier.website.value,
         description: addSupplier.description.value,
         accessCode: addSupplier.accessCode.value,
-        status: { isOpen: addSupplier.status },
+        status: { status: addSupplier.status },
         location: addSupplier.location.value,
-        timeslots: [], // Initialize with empty timeslots
+        timeslots: [],
       };
-
       setSuppliers((prev) => [...prev, newSupplier]);
       setAddSupplier({
         active: false,
@@ -265,7 +264,7 @@ export default function EditBizMatchEvent({
         country: "PH",
         accessCode: { value: "", err: "" },
         logo: { value: "", file: null, err: "" },
-        status: true,
+        status: "open",
         description: { value: "", err: "" },
       });
     } else {
@@ -289,7 +288,7 @@ export default function EditBizMatchEvent({
       country: supplier.country,
       accessCode: { value: supplier.accessCode, err: "" },
       logo: { value: supplier.logoSecUrl, file: null, err: "" },
-      status: supplier.status.isOpen,
+      status: supplier.status.status,
       description: { value: supplier.description, err: "" },
     });
   };
@@ -308,12 +307,10 @@ export default function EditBizMatchEvent({
         website: editSupplier.website.value,
         description: editSupplier.description.value,
         accessCode: editSupplier.accessCode.value,
-        status: { isOpen: editSupplier.status },
+        status: { status: editSupplier.status },
         location: editSupplier.location.value,
-        timeslots: editSupplier.supplier.timeslots, // Keep existing timeslots
+        timeslots: editSupplier.supplier.timeslots,
       };
-
-      // If logo was changed, add it to the updated suppliers list
       if (editSupplier.logo.file) {
         const updatedSuppliers = suppliers.map((s) =>
           s.id === updatedSupplier.id ? updatedSupplier : s
@@ -324,7 +321,6 @@ export default function EditBizMatchEvent({
           prev.map((s) => (s.id === updatedSupplier.id ? updatedSupplier : s))
         );
       }
-
       setEditSupplier({
         active: false,
         supplier: null,
@@ -334,7 +330,7 @@ export default function EditBizMatchEvent({
         country: "PH",
         accessCode: { value: "", err: "" },
         logo: { value: "", file: null, err: "" },
-        status: true,
+        status: "open",
         description: { value: "", err: "" },
       });
     } else {
@@ -351,7 +347,6 @@ export default function EditBizMatchEvent({
   const handleSave = async () => {
     const validation = validateEvent(event, suppliers);
     setErrors(validation.errors);
-
     if (validation.isValid) {
       // Track changes in suppliers
       const supplierChanges: SupplierChanges = {
@@ -383,6 +378,7 @@ export default function EditBizMatchEvent({
           const formData = new FormData();
 
           // Clean event data by excluding specified keys
+
           const {
             clients,
             stats,
@@ -401,7 +397,7 @@ export default function EditBizMatchEvent({
               noShowPercentage,
               presentPercentage,
               registeredPercentage,
-              status,
+
               timeslots,
               ...cleanSupplier
             } = supplier;
@@ -525,7 +521,7 @@ export default function EditBizMatchEvent({
   return (
     <div className="w-full inter">
       <div>
-        <h1 className="text-2xl font-[700] ">Edit Event</h1>
+        <h1 className="text-2xl font-[400] ">Edit Event</h1>
         <p className="text-neutral-800 font-[500]">
           Update your event details and manage suppliers
         </p>
@@ -859,17 +855,19 @@ export default function EditBizMatchEvent({
                         </label>
                         <select
                           name="status"
-                          value={addSupplier.status.toString()}
+                          value={addSupplier.status}
                           onChange={(d) => {
                             setAddSupplier((prev) => ({
                               ...prev,
-                              status: d.target.value === "true",
+                              status: d.target.value,
                             }));
                           }}
                           className="mt-1.5 w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
                         >
-                          <option value="true">OPEN</option>
-                          <option value="false">CLOSED</option>
+                          <option value="open">Open</option>
+                          <option value="closed">Closed</option>
+                          <option value="in_meeting">In Meeting</option>
+                          <option value="break">Break</option>
                         </select>
                       </div>
                     </div>
@@ -1067,17 +1065,19 @@ export default function EditBizMatchEvent({
                         </label>
                         <select
                           name="status"
-                          value={editSupplier.status.toString()}
+                          value={editSupplier.status}
                           onChange={(d) => {
                             setEditSupplier((prev) => ({
                               ...prev,
-                              status: d.target.value === "true",
+                              status: d.target.value,
                             }));
                           }}
                           className="mt-1.5 w-full border-1 rounded-lg py-1.5 px-3 border-neutral-200 outline-neutral-400 outline-offset-4"
                         >
-                          <option value="true">OPEN</option>
-                          <option value="false">CLOSED</option>
+                          <option value="open">Open</option>
+                          <option value="closed">Closed</option>
+                          <option value="in_meeting">In Meeting</option>
+                          <option value="break">Break</option>
                         </select>
                       </div>
                     </div>

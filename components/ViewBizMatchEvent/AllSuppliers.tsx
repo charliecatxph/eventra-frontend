@@ -22,6 +22,7 @@ import { selectApp } from "@/features/appSlice";
 import { useSelector } from "react-redux";
 import { countriesKV } from "@/lib/constants/countries";
 import CropperModal from "./CropperModal";
+import { useRouter } from "next/router";
 
 const editSupplier__defaults = {
   active: false,
@@ -50,6 +51,7 @@ const editSupplier__defaults = {
 };
 
 export default function AllSuppliers({ isFetching, data }) {
+  const router = useRouter();
   const modal = useModal();
   const appData = useSelector(selectApp);
   const fileInputRef = useRef(null);
@@ -110,16 +112,6 @@ export default function AllSuppliers({ isFetching, data }) {
     // Validate website
     try {
       const url = new URL(editSupplier.website.value.trim());
-      if (
-        !url.hostname.match(
-          /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/
-        )
-      ) {
-        newEditSupplier.website.err = "Invalid website URL format";
-        hasErrors = true;
-      } else {
-        newEditSupplier.website.err = "";
-      }
     } catch (e) {
       newEditSupplier.website.err = "Invalid website URL";
       hasErrors = true;
@@ -222,7 +214,6 @@ export default function AllSuppliers({ isFetching, data }) {
             });
           })
           .catch((e) => {
-            console.log(e);
             modal.hide();
             modal.show({
               type: "std",
@@ -253,118 +244,6 @@ export default function AllSuppliers({ isFetching, data }) {
       confirmText: "Apply Changes",
       cancelText: "Cancel",
       icon: <FileQuestion />,
-      color: "success",
-    });
-  };
-
-  const statusOverride = ({
-    suplId,
-    name,
-    country,
-    website,
-    location,
-    acsCode,
-    open,
-    description,
-  }) => {
-    const req = () => {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const formData = new FormData();
-
-          // Add all the text fields
-          formData.append("suplId", suplId);
-          formData.append("name", name);
-          formData.append("country", country);
-          formData.append("website", website);
-          formData.append("location", location);
-          formData.append("acsCode", acsCode);
-          formData.append("description", description || "");
-          formData.append("status", open ? "open" : "closed");
-
-          await axios
-            .post(`${process.env.NEXT_PUBLIC_API}/update-supplier`, formData, {
-              withCredentials: true,
-              headers: {
-                "Content-Type": "multipart/form-data",
-                Authorization: `Bearer ${appData.acsTok}`,
-              },
-            })
-            .catch((e) => {
-              throw new Error(e.response.data.err);
-            });
-          resolve("");
-        } catch (e) {
-          reject(e);
-        }
-      });
-    };
-
-    modal.hide();
-    modal.show({
-      type: "std",
-      title: "Status Override",
-      description: `This action will flip the supplier's state from ${
-        open ? "OPEN" : "CLOSED"
-      } to ${!open ? "OPEN" : "CLOSED"}.`,
-      onConfirm: async () => {
-        modal.hide();
-        modal.show({
-          type: "loading",
-          title: "Updating supplier...",
-          color: "neutral",
-        });
-        req()
-          .then((d) => {
-            modal.hide();
-            modal.show({
-              type: "std",
-              title: "Override complete",
-              description: "Your supplier's state has been overridden.",
-              onConfirm: async () => {
-                modal.hide();
-              },
-              confirmText: "Proceed",
-              icon: <Check />,
-              color: "success",
-            });
-          })
-          .catch((e) => {
-            console.log(e);
-            modal.hide();
-            modal.show({
-              type: "std",
-              title: "Fail",
-              description: "We have failed to update your supplier.",
-              onConfirm: async () => {
-                modal.hide();
-                statusOverride({
-                  suplId,
-                  name,
-                  country,
-                  website,
-                  location,
-                  acsCode,
-                  open,
-                  description,
-                });
-              },
-              onCancel: () => {
-                modal.hide();
-              },
-              confirmText: "Try Again",
-              cancelText: "Exit",
-              icon: <X />,
-              color: "error",
-            });
-          });
-      },
-      onCancel: () => {
-        modal.hide();
-      },
-      confirmText: "Apply Changes",
-      cancelText: "Cancel",
-      icon: <Repeat />,
       color: "success",
     });
   };
@@ -758,7 +637,14 @@ export default function AllSuppliers({ isFetching, data }) {
                                 >
                                   <Pencil size="15px" />
                                 </button>
-                                <button className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md">
+                                <button
+                                  onClick={() =>
+                                    router.push(
+                                      `/view-bz-event/${router.query.slug}?suplId=${d.id}`
+                                    )
+                                  }
+                                  className="p-2 bg-white hover:bg-neutral-50 border-1 border-neutral-200 rounded-md"
+                                >
                                   <Eye size="15px" />
                                 </button>
                               </div>

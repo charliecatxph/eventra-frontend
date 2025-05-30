@@ -86,7 +86,7 @@ export const Modal = ({
           }}
           exit={{ scale: 0.9, opacity: 0 }}
           key={8}
-          className="modal bg-white rounded-full w-max px-5 py-2 flex items-center gap-5 font-[600] text-sm overflow-hidden mb-5"
+          className="modal bg-white rounded-full w-max px-5 py-2 flex items-center gap-5 font-[500] text-sm overflow-hidden mb-5"
         >
           <CircularProgress
             size={15}

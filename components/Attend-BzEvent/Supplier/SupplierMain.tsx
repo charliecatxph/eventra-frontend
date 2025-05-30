@@ -272,8 +272,6 @@ export default function SupplierMain() {
         socketRef.current = socket;
 
         socket.on("connect", () => {
-          console.log("Connected to server:", socket.id);
-
           socket.emit("identify", {
             type: "EVN-BIZ_SUPPLIER",
             bzId: bizData.supplier.bizmatcheventId,
@@ -282,6 +280,7 @@ export default function SupplierMain() {
 
         socket.on("WS-EVN_BIZ_STATUS_FLIP", () => {
           handleSupplierUpdate();
+          fetchTimeslots();
         });
 
         socket.on("WS-EVN_BIZ_ATTENDEE_CHANGED", () => {
@@ -305,9 +304,7 @@ export default function SupplierMain() {
           console.error("⚠️ Socket error:", err);
         });
 
-        socket.on("disconnect", (e) => {
-          console.log("Disconnected from server");
-        });
+        socket.on("disconnect", (e) => {});
       } catch (err) {
         dispatch(
           setSupplierFetchingStatus({
@@ -329,73 +326,77 @@ export default function SupplierMain() {
 
   return (
     <>
-      <header className="sticky top-0 bg-white shadow-sm shadow-neutral-50 z-[9999]">
-        <div className="container max-w-[1300px] w-full mx-auto">
-          <div className="px-5 wrapper py-3 flex items-center justify-between ">
-            <div className="logo flex gap-5 items-center">
-              <img
-                src="/assets/petals.png"
-                alt="MPOF2025 Petals"
-                className="size-10"
-              />
-              <div className="hidden md:block">
-                <h1 className="text-lg font-[600] geist">MPOF2025 BizMatch</h1>
-                <p className="text-xs geist font-[500]">Supplier</p>
+      <main className="bg-neutral-50 min-h-screen">
+        <header className="sticky top-0 bg-white shadow-sm shadow-neutral-50 z-[9999]">
+          <div className="container max-w-[1300px] w-full mx-auto">
+            <div className="px-5 wrapper py-3 flex items-center justify-between ">
+              <div className="logo flex gap-5 items-center">
+                <img
+                  src="/assets/petals.png"
+                  alt="MPOF2025 Petals"
+                  className="size-10"
+                />
+                <div className="hidden md:block">
+                  <h1 className="text-lg font-[600] geist">
+                    MPOF2025 BizMatch
+                  </h1>
+                  <p className="text-xs geist font-[500]">Supplier</p>
+                </div>
+              </div>
+              <div className="relative">
+                <p className="geist flex items-center gap-2 text-sm">
+                  Logged in as{" "}
+                  <span className="font-[500] block max-w-[100px] truncate">
+                    {bizData.supplier.name}
+                  </span>
+                  {!userDropdown ? (
+                    <ChevronDown
+                      className="size-5 cursor-pointer"
+                      strokeWidth="2.5"
+                      onClick={() => setUserDropdown(true)}
+                    />
+                  ) : (
+                    <ChevronUp
+                      className="size-5 cursor-pointer"
+                      strokeWidth="2.5"
+                      onClick={() => setUserDropdown(false)}
+                    />
+                  )}
+                </p>
+                <AnimatePresence>
+                  {userDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      key={1}
+                      style={{ transformOrigin: "top right" }}
+                      ref={refx}
+                      className="absolute top-[110%] right-0 w-[200px] h-10"
+                    >
+                      <button
+                        onClick={() => handleLogout()}
+                        className="bg-white border-1 border-neutral-100 hover:bg-neutral-50 shadow-sm shadow-neutral-50 w-full h-full font-[500] geist text-sm rounded-lg text-left px-5"
+                      >
+                        Log Out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
-            <div className="relative">
-              <p className="geist flex items-center gap-2 text-sm">
-                Logged in as{" "}
-                <span className="font-[500] block max-w-[100px] truncate">
-                  {bizData.supplier.name}
-                </span>
-                {!userDropdown ? (
-                  <ChevronDown
-                    className="size-5 cursor-pointer"
-                    strokeWidth="2.5"
-                    onClick={() => setUserDropdown(true)}
-                  />
-                ) : (
-                  <ChevronUp
-                    className="size-5 cursor-pointer"
-                    strokeWidth="2.5"
-                    onClick={() => setUserDropdown(false)}
-                  />
-                )}
-              </p>
-              <AnimatePresence>
-                {userDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    key={1}
-                    style={{ transformOrigin: "top right" }}
-                    ref={refx}
-                    className="absolute top-[110%] right-0 w-[200px] h-10"
-                  >
-                    <button
-                      onClick={() => handleLogout()}
-                      className="bg-white border-1 border-neutral-100 hover:bg-neutral-50 shadow-sm shadow-neutral-50 w-full h-full font-[500] geist text-sm rounded-lg text-left px-5"
-                    >
-                      Log Out
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          </div>
+        </header>
+        <section className="geist">
+          <div className="container w-full max-w-[1300px] px-5 mx-auto">
+            <div className="wrapper pt-5">
+              {!timeslot && <SupplierTimesheetDisplay />}
+              {timeslot && <TimesheetDetail />}
             </div>
           </div>
-        </div>
-      </header>
-      <section className="geist bg-neutral-50">
-        <div className="container w-full max-w-[1300px] px-5 mx-auto">
-          <div className="wrapper pt-5">
-            {!timeslot && <SupplierTimesheetDisplay />}
-            {timeslot && <TimesheetDetail />}
-          </div>
-        </div>
-      </section>
+        </section>
+      </main>
     </>
   );
 }

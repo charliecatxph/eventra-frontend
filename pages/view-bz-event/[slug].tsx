@@ -34,8 +34,9 @@ import AllClients from "@/components/ViewBizMatchEvent/AllClients";
 import OccupancyAnalytics from "@/components/ViewBizMatchEvent/OccupancyAnalytics";
 import EditBizMatchEvent from "@/components/EditBizMatchEvent";
 import ViewClientRegistration from "@/components/ViewBizMatchEvent/ViewClientRegistration";
+import ViewSupplier from "@/components/ViewBizMatchEvent/ViewSupplier";
 
-type ACTScreen = "main" | "edit" | "client_reg";
+type ACTScreen = "main" | "edit" | "client_reg" | "supplier";
 
 export default function ViewBzEvent() {
   const modal = useModal();
@@ -55,12 +56,17 @@ export default function ViewBzEvent() {
   const [currentAttendeeRegistration, setCurrentAttendeeRegistration] =
     useState<any>(null);
 
-  const { atnId } = router.query;
+  const { atnId, suplId } = router.query;
 
   useEffect(() => {
     if (!atnId) return;
     setActiveScreen("client_reg");
   }, [atnId]);
+
+  useEffect(() => {
+    if (!suplId) return;
+    setActiveScreen("supplier");
+  }, [suplId]);
 
   useSecureRoute(() => {
     setRender(true);
@@ -68,6 +74,16 @@ export default function ViewBzEvent() {
 
   const fetchBizMatchEvent = async () => {
     try {
+      setConnectionStatus("Fetching latest information...");
+      dispatch(
+        setFetching({
+          mainEvent: true,
+          bookingOverview: true,
+          cts: true,
+          clients: true,
+          suppliers: true,
+        })
+      );
       const evData = await getBizMatchEvent(
         "all",
         router.query.slug as string,
@@ -104,6 +120,15 @@ export default function ViewBzEvent() {
           status: status,
         })
       );
+      dispatch(
+        setFetching({
+          mainEvent: false,
+          bookingOverview: false,
+          cts: false,
+          clients: false,
+          suppliers: false,
+        })
+      );
 
       dispatch(setInitialized(true));
 
@@ -114,6 +139,15 @@ export default function ViewBzEvent() {
         });
       }
     } catch (e) {
+      dispatch(
+        setFetching({
+          mainEvent: false,
+          bookingOverview: false,
+          cts: false,
+          clients: false,
+          suppliers: false,
+        })
+      );
       router.push("/dashboard");
     }
   };
@@ -275,7 +309,19 @@ export default function ViewBzEvent() {
                 {atnId && (
                   <>
                     <ChevronRight className="text-neutral-600" />{" "}
-                    <p className="font-[500]">Client</p>
+                    <p className="font-[500]">
+                      Client ID:{" "}
+                      <span className="font-[400]">{router.query.atnId}</span>
+                    </p>
+                  </>
+                )}
+                {suplId && (
+                  <>
+                    <ChevronRight className="text-neutral-600" />{" "}
+                    <p className="font-[500]">
+                      Supplier ID:{" "}
+                      <span className="font-[400]">{router.query.suplId}</span>
+                    </p>
                   </>
                 )}
               </h1>
@@ -298,7 +344,9 @@ export default function ViewBzEvent() {
                   Go To Dashboard
                 </li>
               )}
-              {(activeScreen === "client_reg" || activeScreen === "edit") && (
+              {(activeScreen === "client_reg" ||
+                activeScreen === "edit" ||
+                activeScreen === "supplier") && (
                 <li
                   onClick={() => {
                     router.push(`/view-bz-event/${router.query.slug}`);
@@ -380,13 +428,8 @@ export default function ViewBzEvent() {
                         notInDashboard
                       />
                     </div>
-                    <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                      <BizEvFirstBentoAnalytics
-                        isFetching={bzData.fetching.bookingOverview}
-                        data={bzData.data.stats}
-                      />
-                    </div>
-                    <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+
+                    <div className="h-[250px] col-span-2 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
                       <BizEvSecondBentoAnalytics
                         isFetching={bzData.fetching.cts}
                         data={bzData.data.stats}
@@ -410,12 +453,12 @@ export default function ViewBzEvent() {
                           setCurrentAttendeeRegistration(dx);
                           setActiveScreen("client_reg");
                         }}
-                      />
-                    </div>
-                    <div className="col-span-3 bg-white min-h-[500px] shadow-sm shadow-neutral-50 rounded-md p-5">
-                      <OccupancyAnalytics
-                        isFetching={bzData.fetching.suppliers}
-                        data={bzData.data.suppliers}
+                        onClientDelete={() => {
+                          onClientRegisterTimeslot(
+                            bzData__static.current.data.id
+                          );
+                          onClientRegisterBz(bzData__static.current.data.id);
+                        }}
                       />
                     </div>
                   </div>
@@ -424,7 +467,13 @@ export default function ViewBzEvent() {
 
               {activeScreen === "client_reg" && (
                 <>
-                  <ViewClientRegistration />
+                  <ViewClientRegistration socket={socketRef.current} />
+                </>
+              )}
+
+              {activeScreen === "supplier" && (
+                <>
+                  <ViewSupplier socket={socketRef.current} />
                 </>
               )}
             </div>

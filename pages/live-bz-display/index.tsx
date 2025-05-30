@@ -51,9 +51,7 @@ export default function LiveBzDisplay() {
     announcements[0]
   );
   const [showAnnouncement, setShowAnnouncement] = useState(false);
-  const workerRef = useRef<Worker | null>(null);
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const isSpeakingRef = useRef(false);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [begin, setBegin] = useState<boolean>(false);
@@ -64,73 +62,43 @@ export default function LiveBzDisplay() {
     const audio = new Audio("/assets/notification.mp3");
     await audio.play();
 
-    await new Promise((res, rej) => setTimeout(() => res(""), 500));
+    await new Promise((res) => setTimeout(res, 1000));
 
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
     const text = `${announcement.data.name} is now ${announcement.data.status} at ${announcement.data.location}`;
-    const utterance = new SpeechSynthesisUtterance(text);
 
-    const voices = window.speechSynthesis.getVoices();
-
-    const selectedVoice =
-      voices.find(
-        (voice) =>
-          voice.lang === "en-GB" && voice.name.toLowerCase().includes("male")
-      ) ||
-      voices.find((voice) => voice.lang === "en-GB") ||
-      voices.find((voice) => voice.lang.startsWith("en"));
-
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
+    const voices = synth.getVoices();
+    if (voices.length === 0) {
+      console.log("No voices found yet.");
+      return;
     }
 
+    const selectedVoice = voices.find(
+      (voice) =>
+        voice.name === "Google UK English Female" && voice.lang === "en-GB"
+    );
+
+    if (!selectedVoice) {
+      console.warn(
+        "Google UK English Female voice not found, falling back to default voice"
+      );
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = selectedVoice || voices[0]; // fallback to first voice if not found
     utterance.rate = 0.8;
-    utterance.pitch = 1;
     utterance.volume = 1;
-
-    utterance.onstart = () => {
-      console.log("Speech started for:", text);
-      isSpeakingRef.current = true;
-    };
-
+    utterance.onstart = () => console.log("Speech started");
     utterance.onend = () => {
-      console.log("Speech completed for:", text);
-      isSpeakingRef.current = false;
+      setShowAnnouncement(false);
+      console.log("Speech ended");
+    };
+    utterance.onerror = (e) => {
+      console.error("Speech error:", e);
       setShowAnnouncement(false);
     };
 
-    utterance.onerror = (event) => {
-      console.error("Speech error:", {
-        error: event.error,
-        text: text,
-        elapsedTime: event.elapsedTime,
-        name: event.name,
-      });
-      isSpeakingRef.current = false;
-    };
-
-    utterance.onpause = () => {
-      console.log("Speech paused for:", text);
-    };
-
-    utterance.onresume = () => {
-      console.log("Speech resumed for:", text);
-    };
-
-    utterance.onmark = (event) => {
-      console.log("Speech mark reached:", event.name);
-    };
-
-    utterance.onboundary = (event) => {
-      console.log("Speech boundary reached:", {
-        name: event.name,
-        elapsedTime: event.elapsedTime,
-        charIndex: event.charIndex,
-      });
-    };
-
-    speechRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+    synth.speak(utterance);
   };
 
   const queueRef = useRef<Announcement[]>([]);
@@ -145,6 +113,7 @@ export default function LiveBzDisplay() {
     if (next) {
       setCurrentAnnouncement(next);
       setShowAnnouncement(true);
+
       await speakAnnouncement(next);
     }
 
@@ -203,8 +172,6 @@ export default function LiveBzDisplay() {
     socketRef.current.on("connect", () => {
       console.log("Connected to server:", socketRef.current.id);
 
-      console.log(suppliers.length);
-
       socketRef.current.emit("identify", {
         type: "EVN-BZ-DISPLAY",
         bzId: suppliers[0].bizmatcheventId,
@@ -228,7 +195,8 @@ export default function LiveBzDisplay() {
     if (!bzId || !begin) return;
     fetchSupplierData(bzId as string);
 
-    const voices = window.speechSynthesis.getVoices();
+    synthRef.current = window.speechSynthesis;
+    const voices = synthRef.current.getVoices();
     if (voices.length === 0) {
       window.speechSynthesis.onvoiceschanged = () => {
         const loadedVoices = window.speechSynthesis.getVoices();

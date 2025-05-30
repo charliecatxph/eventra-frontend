@@ -17,6 +17,7 @@ export default function AllClients({
   isFetching,
   data,
   setCurrentAttendeeRegistration,
+  onClientDelete,
 }) {
   const router = useRouter();
   const modal = useModal();
@@ -64,6 +65,7 @@ export default function AllClients({
               color: "success",
               onConfirm: () => modal.hide(),
             });
+            onClientDelete();
           })
           .catch((e) => {
             modal.hide();

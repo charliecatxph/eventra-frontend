@@ -7,9 +7,11 @@ import {
   Check,
   X,
   Clock,
+  Paperclip,
+  Calendar,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CircularProgress } from "@mui/material";
+import { CircularProgress, Paper } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import {
   bizmatchSlice,
@@ -127,7 +129,7 @@ export default function ViewAllSuppliers() {
   const fetchSuppliers = async () => {
     if (!bizData.user.id) return;
     const bzid = process.env.NEXT_PUBLIC_BZID;
-    dispatch(setIsFetching(true));
+
     try {
       const d = await axios.post(
         `${process.env.NEXT_PUBLIC_API}/get-biz-suppliers`,
@@ -241,10 +243,112 @@ export default function ViewAllSuppliers() {
     });
   };
 
+  const handleCancelTimeslot = async (suplId: string) => {
+    modal.hide();
+    modal.show({
+      type: "std",
+      title: "Cancel timeslot",
+      description: "Are you sure you want to cancel your timeslot?",
+      confirmText: "Yes",
+      cancelText: "No",
+      onConfirm: async () => {
+        try {
+          modal.hide();
+          modal.show({
+            type: "loading",
+            title: "Cancelling...",
+            color: "neutral",
+          });
+          await axios.post(
+            `${process.env.NEXT_PUBLIC_API}/cancel-registration`,
+            {
+              suplId,
+              atnId: bizData.user.id,
+              bzId: bizData.user.bizmatcheventId,
+            },
+            {
+              withCredentials: true,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${bizData.user.acsTok}`,
+              },
+            }
+          );
+          modal.hide();
+          modal.show({
+            type: "std",
+            title: "Timeslot cancelled",
+            description: "Your timeslot has been cancelled.",
+            color: "success",
+            icon: <Check />,
+            onConfirm: () => {
+              modal.hide();
+            },
+            confirmText: "Exit",
+          });
+          fetchSuppliers();
+        } catch (e) {
+          modal.hide();
+          modal.show({
+            type: "std",
+            title: "Failed to cancel timeslot",
+            color: "error",
+            confirmText: "Exit",
+            onConfirm: () => {
+              modal.hide();
+            },
+            icon: <X />,
+          });
+        }
+      },
+      onCancel: () => {
+        modal.hide();
+      },
+      icon: <Clock />,
+      color: "error",
+    });
+  };
+
   useEffect(() => {
+    dispatch(setIsFetching(true));
     fetchSuppliers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bizData.user.id]);
+
+  const [showSchedule, setShowSchedule] = useState(false);
+
+  const [timesheet, setTimesheet] = useState<any[]>([]);
+  const [isTimesheetFetching, setIsTimesheetFetching] = useState(true);
+
+  useEffect(() => {
+    if (!bizData.user.id || !bizData.user.bizmatcheventId) return;
+    if (!showSchedule) return;
+
+    setIsTimesheetFetching(true);
+    axios
+      .post(
+        `${process.env.NEXT_PUBLIC_API}/get-client-timesheet`,
+        {
+          bzId: bizData.user.bizmatcheventId,
+          bizClientId: bizData.user.id,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${bizData.user.acsTok}`,
+          },
+        }
+      )
+      .then((d) => {
+        setTimesheet(d.data.data);
+        setIsTimesheetFetching(false);
+      })
+      .catch((e) => {
+        setTimesheet([]);
+        setIsTimesheetFetching(false);
+      });
+  }, [bizData.user.id, bizData.user.bizmatcheventId, showSchedule]);
 
   return (
     <>
@@ -273,24 +377,92 @@ export default function ViewAllSuppliers() {
                         <div className="icon bg-neutral-400/40 w-max p-2 rounded-md">
                           <Building size="15px" strokeWidth="3" />
                         </div>
-                        <p className="font-[500] text-sm">
-                          {bizData.main.suppliers.length} supplier
-                          {bizData.main.suppliers.length > 1 && "s"}
-                        </p>
+                        <div className="flex justify-between items-center w-full">
+                          <p className="font-[500] text-sm">
+                            {bizData.main.suppliers.length} supplier
+                            {bizData.main.suppliers.length > 1 && "s"}
+                          </p>
+                          <button
+                            onClick={() => setShowSchedule(!showSchedule)}
+                            className="text-xs text-white font-[500]"
+                          >
+                            {showSchedule
+                              ? "Hide Appointments"
+                              : "Show Appointments"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
+                  {showSchedule && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="my-5 bg-white rounded-lg shadow-sm shadow-neutral-100 p-5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="icon w-max p-2 rounded-md">
+                            <Calendar size="15px" strokeWidth="1.2" />
+                          </div>
+                          <h2 className="font-[600] text-neutral-700">
+                            Your Timesheet
+                          </h2>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-1 gap-3">
+                        {isTimesheetFetching ? (
+                          <div className="loading-state w-full flex items-center justify-center gap-5">
+                            <CircularProgress
+                              size={20}
+                              thickness={5}
+                              disableShrink
+                              sx={{
+                                color: "black",
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          timesheet?.map((timeslot, i) => (
+                            <div
+                              key={i}
+                              className={`${
+                                timeslot.status === "OPEN"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-neutral-50 text-black"
+                              } p-3 rounded-md flex justify-between items-center gap-5`}
+                            >
+                              <div className=" flex items-center gap-2 text-[11px]   w-1/2">
+                                <span>
+                                  {moment(timeslot.startT).format("hh:mm A")} -{" "}
+                                  {moment(timeslot.endT).format("hh:mm A")}
+                                </span>
+                              </div>
+                              <p className="text-xs font-[600]  text-right truncate w-1/2">
+                                {timeslot.status === "OPEN"
+                                  ? "OPEN"
+                                  : timeslot.supplier.name}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="render-suppliers grid-cols-1 md:grid-cols-2 lg:grid-cols-3 grid geist gap-2"
+                    className="render-suppliers grid-cols-1 grid geist gap-2"
                   >
                     {bizData.main.suppliers.map((d: Supplier, i: number) => (
                       <motion.div
                         key={i}
-                        className="border-1 border-neutral-100 rounded-md overflow-hidden min-h-[300px] flex flex-col bg-white shadow-sm shadow-neutral-100"
+                        className="border-1 border-neutral-100 rounded-md overflow-hidden min-h-[200px] flex flex-col bg-white shadow-sm shadow-neutral-100"
                       >
                         {d.attendeeStatus.alreadyRegistered ? (
                           <>
@@ -404,9 +576,19 @@ export default function ViewAllSuppliers() {
                                     }`}
                                   >
                                     {d.attendeeStatus.state === "registered"
-                                      ? "Change Schedule"
+                                      ? "Change"
                                       : "Select Supplier"}
                                   </button>
+                                  {d.attendeeStatus.state === "registered" && (
+                                    <button
+                                      onClick={() => {
+                                        handleCancelTimeslot(d.id);
+                                      }}
+                                      className={`text-white px-5 flex-1 font-[700] py-1.5 text-sm rounded-md bg-red-700 hover:bg-red-800`}
+                                    >
+                                      Cancel
+                                    </button>
+                                  )}
                                   <a
                                     href={d.website}
                                     target="_blank"

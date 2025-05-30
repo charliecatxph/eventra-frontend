@@ -330,7 +330,7 @@ export default function SupplierTimesheetDisplay() {
         bizData.supplier.fetching.status && (
           <h1 className="mt-5 text-center">No timeslots issued.</h1>
         )}
-      {bizData.supplier.fetching.requesting && (
+      {bizData.supplier.fetching.requesting ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -348,83 +348,91 @@ export default function SupplierTimesheetDisplay() {
           />
           Getting timeslots...
         </motion.div>
-      )}
+      ) : (
+        <div className=" bg-white p-5 mt-5 rounded-lg">
+          <div>
+            <h1 className="flex gap-3 font-[600] text-lg items-center">
+              <Clock />
+              Today's Schedule
+            </h1>
+            <p className="mt-1 text-sm">Your timeslots for today:</p>
+          </div>
+          <table className="w-full table-gap border-collapse border-spacing-y-1 mt-5">
+            <tbody>
+              {bizData.supplier.timeslots &&
+                !bizData.supplier.fetching.requesting &&
+                bizData.supplier.fetching.status &&
+                bizData.supplier.timeslots.map((d, i: number) => {
+                  if (d.status.status === "OPEN") {
+                    return (
+                      <>
+                        <tr className="bg-neutral-50/50 border-1 border-neutral-100 rounded-lg">
+                          <td className="font-[600] text-neutral-800 text-xs md:text-sm w-[200px] text-center">
+                            <div className="p-5">
+                              {moment(d.startT).format("hh:mm A")}
+                            </div>
+                          </td>
+                          <td>
+                            <p className="flex items-center gap-2 font-[500] text-sm">
+                              <CircleDashed size="18px" className="shrink-0" />{" "}
+                              Slot Available
+                            </p>
+                          </td>
 
-      <div className=" bg-white p-5 mt-5 rounded-lg">
-        <div>
-          <h1 className="flex gap-3 font-[600] text-lg items-center">
-            <Clock />
-            Today's Schedule
-          </h1>
-          <p className="mt-1 text-sm">Your timeslots for today:</p>
-        </div>
-        <div className="grid grid-cols-1 gap-2 mt-5">
-          {bizData.supplier.timeslots &&
-            !bizData.supplier.fetching.requesting &&
-            bizData.supplier.fetching.status &&
-            bizData.supplier.timeslots.map((d, i: number) => {
-              if (d.status.status === "OPEN") {
-                return (
-                  <>
-                    <div className="p-5 bg-neutral-50/50 border-1 border-neutral-200 rounded-lg flex justify-between">
-                      <div className="flex gap-5 items-center basis-[50%]">
-                        <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs md:text-sm">
-                          {moment(d.startT).format("hh:mm A")}
-                        </div>
-                        <div>
-                          <p className="flex items-center gap-2 font-[500] text-sm">
-                            <CircleDashed size="18px" className="shrink-0" />{" "}
-                            Slot Available
-                          </p>
-                        </div>
-                      </div>
-                      <div className="basis-[50%] flex justify-end items-center">
-                        <p className="bg-neutral-100 w-max px-5 py-1 rounded-full font-[600] text-sm">
-                          OPEN
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                );
-              } else if (d.status.status === "SCHEDULED") {
-                return (
-                  <>
-                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
-                      <div className="p-5 bg-blue-50/50 border-1 border-blue-200 rounded-lg flex justify-between">
-                        <div className="flex gap-5 items-center basis-[50%]">
-                          <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs md:text-sm">
-                            {moment(d.startT).format("hh:mm A")}
-                          </div>
-                          <div>
-                            <p className="flex items-center gap-2 font-[600] text-xs">
+                          <td className="w-[200px]">
+                            <p className="bg-neutral-100 w-max mx-auto px-5 py-1 rounded-full font-[600] text-sm">
+                              OPEN
+                            </p>
+                          </td>
+                        </tr>
+                      </>
+                    );
+                  } else if (d.status.status === "SCHEDULED") {
+                    return (
+                      <>
+                        <tr
+                          onClick={() =>
+                            router.push(`/attend-bizmatch?timeslot=${d.id}`)
+                          }
+                          className="p-5 bg-blue-50/50 border-1 border-blue-200 rounded-lg cursor-pointer"
+                        >
+                          <td className="font-[600] text-neutral-800 text-xs md:text-sm w-[200px] text-center">
+                            <div className="p-5">
+                              {moment(d.startT).format("hh:mm A")}
+                            </div>
+                          </td>
+                          <td>
+                            <p className="font-[500] text-xs md:text-sm">
                               {d.status.name}
                             </p>
-                            <p className="text-[10px] md:text-xs">
+                            <p className="font-[400] text-[10px] md:text-xs">
                               {d.status.orgN}
                             </p>
-                          </div>
-                        </div>
-                        <div className="basis-[50%] flex justify-end items-center">
-                          <div className="flex flex-col items-end gap-1">
-                            <p className="bg-blue-100 text-blue-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                          </td>
+
+                          <td className="w-[200px]">
+                            <p className="bg-blue-100 text-blue-600 mx-auto w-max px-5 py-1 rounded-full font-[600] text-xs">
                               SCHEDULED
                             </p>
-                          </div>
-                        </div>
-                      </div>
-                    </a>
-                  </>
-                );
-              } else if (d.status.status === "REOPENED") {
-                return (
-                  <>
-                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
-                      <div className="p-5 bg-yellow-50/50 border-1 border-yellow-200 rounded-lg flex justify-between">
-                        <div className="flex gap-5 items-center basis-[50%]">
-                          <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs">
-                            {moment(d.startT).format("hh:mm A")}
-                          </div>
-                          <div>
+                          </td>
+                        </tr>
+                      </>
+                    );
+                  } else if (d.status.status === "REOPENED") {
+                    return (
+                      <>
+                        <tr
+                          onClick={() =>
+                            router.push(`/attend-bizmatch?timeslot=${d.id}`)
+                          }
+                          className="p-5 bg-yellow-50/50 border-1 border-yellow-200 rounded-lg cursor-pointer"
+                        >
+                          <td className="font-[600] text-neutral-800 text-xs md:text-sm w-[200px] text-center">
+                            <div className="p-5">
+                              {moment(d.startT).format("hh:mm A")}
+                            </div>
+                          </td>
+                          <td>
                             <p className="flex items-center gap-2 font-[500] text-xs md:text-sm">
                               <CircleFadingPlus
                                 size="18px"
@@ -432,83 +440,84 @@ export default function SupplierTimesheetDisplay() {
                               />{" "}
                               Slot Re-opened
                             </p>
-                          </div>
-                        </div>
-                        <div className="basis-[50%] flex justify-end items-center">
-                          <div className="flex flex-col items-end gap-1">
-                            <p className="bg-yellow-100 text-yellow-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                          </td>
+
+                          <td className="w-[200px]">
+                            <p className="bg-yellow-100 text-yellow-600 mx-auto w-max px-5 py-1 rounded-full font-[600] text-xs">
                               REOPENED
                             </p>
-                            <p className="hidden md:block text-xs italic text-neutral-800 mt-1  text-right ">
-                              Previous Attendee: {d.status.name},{" "}
-                              {d.status.orgN}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </a>
-                  </>
-                );
-              } else if (d.status.status === "ATTENDED") {
-                return (
-                  <>
-                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
-                      <div className="p-5 bg-emerald-50/50 border-1 border-emerald-200 rounded-lg flex justify-between">
-                        <div className="flex gap-5 items-center basis-[50%]">
-                          <div className="basis-[30%] text-center font-[600] text-neutral-800 text-xs md:text-sm">
-                            {moment(d.startT).format("hh:mm A")}
-                          </div>
-                          <div>
-                            <p className="flex items-center gap-2 font-[600] text-xs">
+                          </td>
+                        </tr>
+                      </>
+                    );
+                  } else if (d.status.status === "ATTENDED") {
+                    return (
+                      <>
+                        <tr
+                          onClick={() =>
+                            router.push(`/attend-bizmatch?timeslot=${d.id}`)
+                          }
+                          className="p-5 bg-emerald-50/50 border-1 border-emerald-200 rounded-lg cursor-pointer"
+                        >
+                          <td className="font-[600] text-neutral-800 text-xs md:text-sm w-[200px] text-center">
+                            <div className="p-5">
+                              {moment(d.startT).format("hh:mm A")}
+                            </div>
+                          </td>
+                          <td>
+                            <p className="font-[500] text-xs md:text-sm">
                               {d.status.name}
                             </p>
-                            <p className="text-[10px] md:text-xs">
+                            <p className="font-[400] text-[10px] md:text-xs">
                               {d.status.orgN}
                             </p>
-                          </div>
-                        </div>
-                        <div className="basis-[50%] flex justify-end items-center">
-                          <div className="flex flex-col items-end gap-1">
-                            <p className="bg-emerald-100 text-emerald-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                          </td>
+
+                          <td className="w-[200px]">
+                            <p className="bg-emerald-100 text-emerald-600 mx-auto w-max px-5 py-1 rounded-full font-[600] text-xs">
                               ATTENDED
                             </p>
-                          </div>
-                        </div>
-                      </div>
-                    </a>
-                  </>
-                );
-              } else if (d.status.status === "IN MEETING") {
-                return (
-                  <>
-                    <a href={`/attend-bizmatch?timeslot=${d.id}`}>
-                      <div className="p-5 bg-purple-50/50 border-1 border-purple-200 rounded-lg flex justify-between">
-                        <div className="flex gap-5 items-center basis-[50%]">
-                          <div className="basis-[20%] text-center font-[600] text-neutral-800">
-                            {moment(d.startT).format("hh:mm A")}
-                          </div>
-                          <div>
-                            <p className="flex items-center gap-2 font-[600] text-sm">
+                          </td>
+                        </tr>
+                      </>
+                    );
+                  } else if (d.status.status === "IN MEETING") {
+                    return (
+                      <>
+                        <tr
+                          onClick={() =>
+                            router.push(`/attend-bizmatch?timeslot=${d.id}`)
+                          }
+                          className="p-5 bg-purple-50/50 border-1 border-purple-200 rounded-lg cursor-pointer"
+                        >
+                          <td className="font-[600] text-neutral-800 text-xs md:text-sm w-[200px] text-center">
+                            <div className="p-5">
+                              {moment(d.startT).format("hh:mm A")}
+                            </div>
+                          </td>
+                          <td>
+                            <p className="font-[500] text-xs md:text-sm">
                               {d.status.name}
                             </p>
-                            <p className="text-xs">{d.status.orgN}</p>
-                          </div>
-                        </div>
-                        <div className="basis-[50%] flex justify-end items-center">
-                          <div className="flex flex-col items-end gap-1">
-                            <p className="bg-purple-100 text-purple-600 w-max px-5 py-1 rounded-full font-[600] text-xs">
+                            <p className="font-[400] text-[10px] md:text-xs">
+                              {d.status.orgN}
+                            </p>
+                          </td>
+
+                          <td className="w-[200px]">
+                            <p className="bg-purple-100 text-purple-600 mx-auto w-max px-5 py-1 rounded-full font-[600] text-xs">
                               IN MEETING
                             </p>
-                          </div>
-                        </div>
-                      </div>
-                    </a>
-                  </>
-                );
-              }
-            })}
+                          </td>
+                        </tr>
+                      </>
+                    );
+                  }
+                })}
+            </tbody>
+          </table>
         </div>
-      </div>
+      )}
     </>
   );
 }

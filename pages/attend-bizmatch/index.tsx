@@ -70,7 +70,7 @@ export default function AttendBizMatch() {
           )
           .then((d) => {
             const decode = jwt.decode(d.data.token);
-            console.log(decode);
+
             dispatch(
               setSupplierAccount({
                 ...bizData.supplier,

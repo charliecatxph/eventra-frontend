@@ -20,6 +20,7 @@ import {
   Timer,
   Clock4,
   CircleFadingPlus,
+  ArrowLeftRight,
 } from "lucide-react";
 import moment from "moment";
 import { useRouter } from "next/router";
@@ -38,6 +39,9 @@ const statusIcons = {
   closed: <X className="text-red-600" size="16px" strokeWidth={"2"} />,
   break: <Coffee className="text-amber-600" size="16px" strokeWidth={"2"} />,
   waiting: <Timer className="text-purple-600" size="16px" strokeWidth={"2"} />,
+  in_meeting: (
+    <ArrowLeftRight className="text-purple-600" size="16px" strokeWidth={"2"} />
+  ),
 };
 
 const statusColors = {
@@ -45,6 +49,7 @@ const statusColors = {
   closed: "bg-red-100 text-red-700",
   break: "bg-amber-100 text-amber-700",
   waiting: "bg-purple-100 text-purple-700",
+  in_meeting: "bg-blue-100 text-blue-700",
 };
 
 const kvStat = {

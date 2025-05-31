@@ -320,7 +320,11 @@ export default function LiveBzDisplay() {
                       </td>
                       <td className="py-6 px-4 text-[40px] bg-neutral-50  ">
                         <span className="text-[40px] font-[400] block truncate ">
-                          {d.status.orgN || "Not in a meeeting."}
+                          {!d.status.orgN && d.status.status === "in_meeting"
+                            ? "-"
+                            : d.status.orgN
+                            ? d.status.orgN
+                            : "Not in a meeting."}
                         </span>
                       </td>
                       <td className="py-6 px-4 bg-neutral-50 ">

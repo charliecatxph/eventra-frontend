@@ -40,7 +40,7 @@ const statusIcons = {
   break: <Coffee className="text-amber-600" size="16px" strokeWidth={"2"} />,
   waiting: <Timer className="text-purple-600" size="16px" strokeWidth={"2"} />,
   in_meeting: (
-    <ArrowLeftRight className="text-purple-600" size="16px" strokeWidth={"2"} />
+    <ArrowLeftRight className="text-blue-600" size="16px" strokeWidth={"2"} />
   ),
 };
 

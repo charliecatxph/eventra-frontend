@@ -40,9 +40,10 @@ interface TimeData {
   endT: { value: string; err: string };
 }
 
-interface Timesheets {
-  inc: { value: number; err: string };
-  lim: { value: number; err: string };
+interface Timeslot {
+  startT: number;
+  endT: number;
+  lim: number;
 }
 
 interface Supplier {
@@ -91,10 +92,7 @@ export default function OrdinaryEvent() {
     endT: { value: "", err: "" },
   });
 
-  const [timesheets, setTimesheets] = useState<Timesheets>({
-    inc: { value: 0, err: "" },
-    lim: { value: 1, err: "" },
-  });
+  const [timeslot, setTimeslot] = useState<Timeslot[]>([]);
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
@@ -236,23 +234,7 @@ export default function OrdinaryEvent() {
   };
 
   const validateTimesheets = (): boolean => {
-    let isValid = true;
-    const updatedState: Partial<Timesheets> = {};
-
-    if (timesheets.inc.value < 1) {
-      updatedState.inc = {
-        ...timesheets.inc,
-        err: "Increment must be at least 1 minute",
-      };
-      isValid = false;
-    }
-
-    if (timesheets.lim.value < 1) {
-      updatedState.lim = { ...timesheets.lim, err: "Limit must be at least 1" };
-      isValid = false;
-    }
-
-    setTimesheets((prev) => ({ ...prev, ...updatedState }));
+    let isValid = false;
     return isValid;
   };
 
@@ -270,7 +252,7 @@ export default function OrdinaryEvent() {
           break;
         }
         case 3: {
-          if (!validateTimesheets()) return;
+          if (timeslot.length === 0) return;
           setStep(4);
           break;
         }
@@ -323,10 +305,7 @@ export default function OrdinaryEvent() {
                 ),
                 startT: getUnix(time.date.value, time.startT.value),
                 endT: getUnix(time.date.value, time.endT.value),
-                tsStartT: getUnix(time.date.value, time.startT.value),
-                tsEndT: getUnix(time.date.value, time.endT.value),
-                lim: timesheets.lim.value,
-                inc: timesheets.inc.value,
+                timeslots: timeslot,
                 suppliers: suppliers.map((d, i) => {
                   return {
                     name: d.name.trim(),
@@ -417,6 +396,18 @@ export default function OrdinaryEvent() {
 
   useEffect(() => {
     if (!time.date.value) return;
+
+    setTime((pv) => ({
+      ...pv,
+      startT: {
+        ...pv.startT,
+        err: "",
+      },
+      endT: {
+        ...pv.endT,
+        err: "",
+      },
+    }));
 
     const dateEntryUnix = new Date(time.date.value);
     dateEntryUnix.setHours(0, 0, 0, 0);
@@ -561,7 +552,7 @@ export default function OrdinaryEvent() {
               </button>
               <div className="text-center mt-8">
                 <h1 className="font-[600] text-4xl text-emerald-700">
-                  BizMatch Event
+                  BizMatch Event (B2B)
                 </h1>
                 <p className="text-sm text-neutral-600 font-[500] mt-3">
                   Fill all fields to create your event
@@ -636,7 +627,7 @@ export default function OrdinaryEvent() {
                   >
                     3
                   </div>
-                  <p className="font-[500]">Timesheet</p>
+                  <p className="font-[500]">Timeslots</p>
                 </div>
                 <div
                   className={`w-12 h-[2px] ${
@@ -700,8 +691,8 @@ export default function OrdinaryEvent() {
 
           {step === 3 && (
             <Timesheets
-              timesheet={timesheets}
-              setTimesheet={setTimesheets}
+              timeslots={timeslot}
+              setTimeslots={setTimeslot}
               evDates={time}
             />
           )}
@@ -713,7 +704,7 @@ export default function OrdinaryEvent() {
             <Review
               information={information}
               evDates={time}
-              timesheet={timesheets}
+              timeslots={timeslot}
               suppliers={suppliers}
             />
           )}

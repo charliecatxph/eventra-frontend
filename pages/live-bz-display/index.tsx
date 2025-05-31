@@ -177,12 +177,12 @@ export default function LiveBzDisplay() {
         bzId: suppliers[0].bizmatcheventId,
       });
     });
-    socketRef.current.on("WS-EVN_BIZ_SUPPLIER_UPDATE", () => {
+    socketRef.current.on("WS-EVN_BIZ_SUPPLIER_UPDATED", () => {
       fetchSupplierData(bzId as string);
     });
 
-    socketRef.current.on("WS-EVN_BIZ_ATTENDEE_CHANGED", () => {
-      fetchSupplierData(bzId as string);
+    socketRef.current.on("WS-EVN_BIZ_EVENT_UPDATED", () => {
+      window.location.reload();
     });
 
     socketRef.current.on("WS-EVN_BIZ_ANNOUNCE", (dx) => {
@@ -277,8 +277,8 @@ export default function LiveBzDisplay() {
       </Head>
       {begin && (
         <div>
-          <div className="bg-[#212121] min-h-screen">
-            <div className="px-15 py-10 text-white text-[50px] flex justify-between items-center font-[600]">
+          <div className="min-h-screen">
+            <div className="px-15 bg-neutral-100 py-10  text-[50px] flex justify-between items-center font-[600]">
               <h1 className="flex items-center gap-10 geist">
                 <img src="/assets/petals.png" /> Malaysian Palm Oil Forum
                 Philippines 2025
@@ -296,9 +296,9 @@ export default function LiveBzDisplay() {
                   return (
                     <tr
                       key={`${d.name}-${d.country}`}
-                      className="border-b border-gray-700"
+                      className="border-b border-gray-100 shadow-sm"
                     >
-                      <td className="py-6 pl-15 w-[200px] bg-[#2a2a2a]">
+                      <td className="py-6 pl-15 w-[200px] bg-neutral-50">
                         <div className="rounded-full size-[150px] overflow-hidden">
                           <img
                             src={d.logoSecUrl}
@@ -307,45 +307,45 @@ export default function LiveBzDisplay() {
                           />
                         </div>
                       </td>
-                      <td className="py-6 px-15 w-[1000px] bg-[#2a2a2a] ">
-                        <span className="text-[50px] font-[700] block truncate text-white">
+                      <td className="py-6 px-15 w-[1000px] bg-neutral-50 ">
+                        <span className="text-[50px] font-[700] block truncate ">
                           {d.name}
                         </span>
-                        <span className="text-[40px] font-[500] block text-gray-300">
+                        <span className="text-[40px] font-[500] block text-neutral-900">
                           {countriesKV[d.country]}
                         </span>
                       </td>
-                      <td className="py-6 px-4 text-[40px] bg-[#2a2a2a] text-white text-center font-[600] ">
+                      <td className="py-6 px-4 text-[40px] bg-neutral-50  text-center font-[600] ">
                         {d.location}
                       </td>
-                      <td className="py-6 px-4 text-[40px] bg-[#2a2a2a] text-white ">
-                        <span className="text-[40px] font-[400] block truncate text-white">
+                      <td className="py-6 px-4 text-[40px] bg-neutral-50  ">
+                        <span className="text-[40px] font-[400] block truncate ">
                           {d.status.orgN || "Not in a meeeting."}
                         </span>
                       </td>
-                      <td className="py-6 px-4 bg-[#2a2a2a] ">
+                      <td className="py-6 px-4 bg-neutral-50 ">
                         {d.status.status === "open" && (
-                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-emerald-500/20 text-emerald-400">
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-emerald-700/90 text-emerald-100">
                             OPEN
                           </span>
                         )}
                         {d.status.status === "closed" && (
-                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-red-500/20 text-red-400">
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-red-700/90 text-red-100">
                             CLOSED
                           </span>
                         )}
                         {d.status.status === "in_meeting" && (
-                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-yellow-500/20 text-yellow-400">
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-yellow-700/90 text-yellow-100">
                             IN MEETING
                           </span>
                         )}
                         {d.status.status === "break" && (
-                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-yellow-500/20 text-yellow-400">
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-yellow-700/90 text-yellow-100">
                             BREAK
                           </span>
                         )}
                         {d.status.status === "waiting" && (
-                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-purple-500/20 text-purple-400">
+                          <span className="block w-max mx-auto px-9 py-2 rounded-full text-[45px] font-[600] bg-purple-700/90 text-purple-100">
                             WAITING
                           </span>
                         )}
@@ -375,16 +375,16 @@ export default function LiveBzDisplay() {
                     damping: 20,
                     delay: 0.3,
                   }}
-                  className="h-[800px] bg-[#212121] w-full fixed bottom-0 text-white p-20 flex flex-col"
+                  className="h-[800px] bg-[#212121] w-full fixed bottom-0  p-20 flex flex-col"
                 >
                   <div className="flex-1 flex items-start gap-20">
                     <div className="flex-1">
-                      <h1 className="text-[90px] font-[700] leading-[1.1]">
+                      <h1 className="text-[90px] font-[700] leading-[1.1] text-neutral-50">
                         {currentAnnouncement.data.name}
-                        <span className="font-[500] text-[70px] block text-gray-300 mt-2">
+                        <span className="font-[500] text-[70px] block text-neutral-50 mt-2">
                           {countriesKV[currentAnnouncement.data.country]}
                         </span>
-                        <span className="font-[500] text-[70px] block text-gray-300 mt-2">
+                        <span className="font-[500] text-[70px] block text-neutral-50 mt-2">
                           {currentAnnouncement.data.location}
                         </span>
                       </h1>
@@ -427,7 +427,7 @@ export default function LiveBzDisplay() {
       )}
 
       {!begin && (
-        <div className="h-screen w-screen grid place-content-center bg-[#212121] text-white">
+        <div className="h-screen w-screen grid place-content-center bg-[#212121] ">
           <div className="flex justify-center">
             <svg
               width="30"

@@ -324,14 +324,8 @@ export default function Dashboard() {
                     data={dashData.highlightedBzEvent}
                   />
                 </div>
-                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
-                  <BizEvFirstBentoAnalytics
-                    isFetching={fetching}
-                    data={dashData.highlightedBzEvent.stats}
-                  />
-                </div>
 
-                <div className="h-[250px] col-span-1 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
+                <div className="h-[250px] col-span-2 bg-white shadow-sm shadow-neutral-50 rounded-md px-5 py-3 flex gap-2 flex-col">
                   <BizEvSecondBentoAnalytics
                     isFetching={fetching}
                     data={dashData.highlightedBzEvent.stats}

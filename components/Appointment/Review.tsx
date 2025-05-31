@@ -1,6 +1,7 @@
-import { Calendar, Clock, MapPin, Users, Globe } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Globe, Paperclip } from "lucide-react";
 import moment from "moment";
 import { countriesKV } from "@/lib/constants/countries";
+import { Paper } from "@mui/material";
 
 interface ReviewProps {
   information: {
@@ -15,10 +16,7 @@ interface ReviewProps {
     endT: { value: string; err: string };
     offset: { value: number; err: string };
   };
-  timesheet: {
-    inc: { value: number; err: string };
-    lim: { value: number; err: string };
-  };
+  timeslots: [];
   suppliers: Array<{
     logo: string;
     name: string;
@@ -31,7 +29,7 @@ interface ReviewProps {
 export default function Review({
   information,
   evDates,
-  timesheet,
+  timeslots,
   suppliers,
 }: ReviewProps) {
   const formatDate = (date: string) => {
@@ -113,60 +111,44 @@ export default function Review({
                     </p>
                   </div>
                 </div>
+                <div className="flex items-start gap-3">
+                  <Paperclip
+                    className="text-neutral-400 shrink-0 mt-1"
+                    size={16}
+                  />
+                  <div>
+                    <p className="text-xs text-neutral-500">Slots</p>
+                    <p className="text-sm font-[500]">
+                      {timeslots.length} timeslot{timeslots.length > 1 && "s"}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="bg-neutral-50 p-4 rounded-lg">
-              <h2 className="font-[500] text-sm mb-3">Timesheet Settings</h2>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <Clock className="text-neutral-400 shrink-0 mt-1" size={16} />
+          <div className="bg-neutral-50 p-4 rounded-lg">
+            <h2 className="font-[500] text-sm mb-3">
+              Suppliers ({suppliers.length})
+            </h2>
+            <div className="space-y-3">
+              {suppliers.map((supplier, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full overflow-hidden bg-white border-1 border-neutral-200">
+                    <img
+                      src={supplier.logo}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
                   <div>
+                    <p className="text-sm font-[500]">{supplier.name}</p>
                     <p className="text-xs text-neutral-500">
-                      Timeslot Duration
-                    </p>
-                    <p className="text-sm font-[500]">
-                      {timesheet.inc.value} minutes
+                      {countriesKV[supplier.country] || supplier.country}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Users className="text-neutral-400 shrink-0 mt-1" size={16} />
-                  <div>
-                    <p className="text-xs text-neutral-500">Attendee Limit</p>
-                    <p className="text-sm font-[500]">
-                      {timesheet.lim.value} per slot
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-neutral-50 p-4 rounded-lg">
-              <h2 className="font-[500] text-sm mb-3">
-                Suppliers ({suppliers.length})
-              </h2>
-              <div className="space-y-3">
-                {suppliers.map((supplier, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full overflow-hidden bg-white border-1 border-neutral-200">
-                      <img
-                        src={supplier.logo}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-sm font-[500]">{supplier.name}</p>
-                      <p className="text-xs text-neutral-500">
-                        {countriesKV[supplier.country] || supplier.country}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
         </div>

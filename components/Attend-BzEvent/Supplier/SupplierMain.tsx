@@ -278,18 +278,20 @@ export default function SupplierMain() {
           });
         });
 
-        socket.on("WS-EVN_BIZ_STATUS_FLIP", () => {
+        socket.on("WS-EVN_BIZ_EVENT_UPDATED", () => {
+          fetchTimeslots();
+        });
+
+        socket.on("WS-EVN_BIZ_SUPPLIER_UPDATED", () => {
           handleSupplierUpdate();
           fetchTimeslots();
         });
 
-        socket.on("WS-EVN_BIZ_ATTENDEE_CHANGED", () => {
-          handleAttendeeStateChange(
-            bizData_supplier__static.current.timeslot.id
-          );
+        socket.on("WS-EVN_BIZ_CLIENT_REGISTERED_TO_TIMESLOT", () => {
+          fetchTimeslots();
         });
 
-        socket.on("WS-EVN_BIZ_SUPPLIER_UPDATE", () => {
+        socket.on("WS-EVN_BIZ_SUPPLIER_UPDATED", () => {
           fetchTimeslots();
           handleAttendeeStateChange(
             bizData_supplier__static.current.timeslot.id

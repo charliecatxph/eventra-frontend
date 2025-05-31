@@ -16,7 +16,7 @@ import { CircularProgress } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import z from "zod";
 import axios from "axios";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import jwt from "jsonwebtoken";
 import { useRouter } from "next/router";
 
@@ -24,6 +24,13 @@ export default function Login() {
   const router = useRouter();
   const dispatch = useDispatch();
   const bizData = useSelector(bizmatchSlice);
+  const [forgotPassword, setForgotPassword] = useState({
+    mode: false,
+    email: "",
+    error: "",
+    processing: false,
+    success: "",
+  });
 
   const registerFunction = async () => {
     const emailSchema = z
@@ -282,6 +289,50 @@ export default function Login() {
     }
   };
 
+  const handleForgotPwSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPassword((prev) => ({ ...prev, error: "", success: "" }));
+    const emailSchema = z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email("Invalid E-Mail.");
+    try {
+      const emailVerif = await emailSchema.parseAsync(forgotPassword.email);
+      setForgotPassword((prev) => ({ ...prev, processing: true }));
+      // Dummy API call
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API}/biz-client-reset-password`,
+        { email: emailVerif }
+      );
+      setForgotPassword((prev) => ({
+        ...prev,
+        success: "If this email is registered, a reset link has been sent.",
+        processing: false,
+      }));
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        setForgotPassword((prev) => ({
+          ...prev,
+          error: e.errors[0].message,
+          processing: false,
+        }));
+      } else if (axios.isAxiosError(e)) {
+        setForgotPassword((prev) => ({
+          ...prev,
+          error: e.response?.data?.err || "Something went wrong.",
+          processing: false,
+        }));
+      } else {
+        setForgotPassword((prev) => ({
+          ...prev,
+          error: "Something went wrong.",
+          processing: false,
+        }));
+      }
+    }
+  };
+
   useEffect(() => {
     dispatch(resetLoginFormData());
   }, [bizData.form.mode]);
@@ -467,7 +518,7 @@ export default function Login() {
             </p>
           </div>
         )}
-        {bizData.form.mode === "login" && (
+        {bizData.form.mode === "login" && !forgotPassword.mode && (
           <div className="w-full flex items-center flex-col">
             <div className="w-full max-w-[600px] bg-white    ">
               <div className="flex flex-col items-center py-5">
@@ -536,6 +587,17 @@ export default function Login() {
                   error={bizData.form.data.pw.err}
                   req
                 />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="text-xs text-emerald-700 hover:underline font-semibold mt-1 mb-2"
+                    onClick={() =>
+                      setForgotPassword((prev) => ({ ...prev, mode: true }))
+                    }
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <button
                   type="submit"
                   className={`${
@@ -579,6 +641,127 @@ export default function Login() {
               <button
                 className="font-[600]"
                 onClick={() => dispatch(setMode("supplier"))}
+              >
+                Login here.
+              </button>
+            </p>
+          </div>
+        )}
+        {bizData.form.mode === "login" && forgotPassword.mode && (
+          <div className="w-full flex items-center flex-col">
+            <div className="w-full max-w-[600px] bg-white">
+              <div className="flex flex-col items-center py-5">
+                <img src="/assets/petals.png" alt="" className="size-13" />
+                <h1 className="mt-5 text-center font-[600] text-2xl">
+                  Forgot Password
+                </h1>
+                <p className="text-center text-sm text-neutral-800 mt-2">
+                  Enter your email address to receive a temporary password.
+                </p>
+              </div>
+              <AnimatePresence>
+                {forgotPassword.error && (
+                  <motion.div
+                    key={1}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="err bg-red-600 text-sm font-[600] rounded-md py-1.5 w-full"
+                  >
+                    <p className="text-center text-white inter">
+                      {forgotPassword.error}
+                    </p>
+                  </motion.div>
+                )}
+                {forgotPassword.success && (
+                  <motion.div
+                    key={2}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="bg-green-600 text-sm font-[600] rounded-md py-1.5 w-full"
+                  >
+                    <p className="text-center text-white inter">
+                      {forgotPassword.success}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <form
+                className="flex flex-col gap-2 mt-5"
+                onSubmit={handleForgotPwSubmit}
+              >
+                <TextInput
+                  identifier="forgotpw-email"
+                  title="E-Mail"
+                  value={forgotPassword.email}
+                  onInput={(dx) => {
+                    setForgotPassword((prev) => ({
+                      ...prev,
+                      email: dx,
+                      error: "",
+                    }));
+                  }}
+                  error={forgotPassword.error}
+                  req
+                />
+                <button
+                  type="submit"
+                  className={`${
+                    !forgotPassword.processing
+                      ? "bg-[#212121] hover:bg-neutral-800 text-white"
+                      : "bg-neutral-100 border-1 border-neutral-300 text-black"
+                  } mt-5 transition-all flex items-center justify-center gap-2 py-2  font-[600] rounded-lg`}
+                  disabled={forgotPassword.processing}
+                >
+                  {forgotPassword.processing ? (
+                    <>
+                      <CircularProgress
+                        disableShrink
+                        value={70}
+                        thickness={6}
+                        size={15}
+                        sx={{
+                          color: "black",
+                        }}
+                      />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Reset Request"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="text-xs text-emerald-700 hover:underline font-semibold mt-2"
+                  onClick={() => {
+                    setForgotPassword({
+                      mode: false,
+                      email: "",
+                      error: "",
+                      processing: false,
+                      success: "",
+                    });
+                  }}
+                >
+                  Back to Login
+                </button>
+              </form>
+            </div>
+            <p className="mt-5 text-center text-sm">
+              Are you a supplier?{" "}
+              <button
+                className="font-[600]"
+                onClick={() => {
+                  setForgotPassword({
+                    mode: false,
+                    email: "",
+                    error: "",
+                    processing: false,
+                    success: "",
+                  });
+                  dispatch(setMode("supplier"));
+                }}
               >
                 Login here.
               </button>

@@ -115,21 +115,6 @@ export default function Suppliers({
       updatedState.country.err = "";
     }
 
-    // Validate website
-    if (!supplierEdit.website.value.trim()) {
-      updatedState.website.err = "Website is required";
-      isValid = false;
-    } else if (
-      !supplierEdit.website.value.match(
-        /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/
-      )
-    ) {
-      updatedState.website.err = "Please enter a valid website URL";
-      isValid = false;
-    } else {
-      updatedState.website.err = "";
-    }
-
     // Validate logo
     if (!supplierEdit.logo.value) {
       updatedState.logo.err = "Logo is required";

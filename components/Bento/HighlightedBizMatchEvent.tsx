@@ -61,8 +61,7 @@ export default function HighlightedBizMatchEvent({
               <p className="text-sm flex items-center gap-2 mt-2">
                 <Clock size="15px" />{" "}
                 {data.timeslotsCount * data.suppliersCount} timeslot
-                {data.timeslotsCount * data.suppliersCount > 1 &&
-                  "s"} issued, {data.lim} organization per slot
+                {data.timeslotsCount * data.suppliersCount > 1 && "s"} issued
               </p>
               <p className="text-sm flex items-center gap-2 mt-2">
                 <Boxes size="15px" /> Suppliers: {data.suppliersCount} supplier

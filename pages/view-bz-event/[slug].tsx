@@ -74,16 +74,6 @@ export default function ViewBzEvent() {
 
   const fetchBizMatchEvent = async () => {
     try {
-      setConnectionStatus("Fetching latest information...");
-      dispatch(
-        setFetching({
-          mainEvent: true,
-          bookingOverview: true,
-          cts: true,
-          clients: true,
-          suppliers: true,
-        })
-      );
       const evData = await getBizMatchEvent(
         "all",
         router.query.slug as string,
@@ -139,6 +129,8 @@ export default function ViewBzEvent() {
         });
       }
     } catch (e) {
+      router.push("/dashboard");
+    } finally {
       dispatch(
         setFetching({
           mainEvent: false,
@@ -148,7 +140,6 @@ export default function ViewBzEvent() {
           suppliers: false,
         })
       );
-      router.push("/dashboard");
     }
   };
 
@@ -205,9 +196,18 @@ export default function ViewBzEvent() {
 
   useEffect(() => {
     if (!router.query.slug || !appData.acsTok) return;
-
+    setConnectionStatus("Fetching latest information...");
+    dispatch(
+      setFetching({
+        mainEvent: true,
+        bookingOverview: true,
+        cts: true,
+        clients: true,
+        suppliers: true,
+      })
+    );
     fetchBizMatchEvent();
-  }, [router.query.slug, appData.acsTok, bzData.initialized]);
+  }, [router.query.slug, appData.acsTok]);
 
   useEffect(() => {
     bzData__static.current = bzData;
@@ -222,19 +222,20 @@ export default function ViewBzEvent() {
       });
     });
 
-    socketRef.current.on("WS-EVN_BIZ_ANALYTICS_DELTA", () => {
-      onClientRegisterTimeslot(bzData__static.current.data.id);
+    socketRef.current.on("WS-EVN_BIZ_EVENT_UPDATED", () => {
+      fetchBizMatchEvent();
     });
 
-    socketRef.current.on("WS-EVN_BIZ_SUPPLIER_UPDATE", () => {
-      onClientRegisterTimeslot(bzData__static.current.data.id);
-    });
-
-    socketRef.current.on("WS-EVN_BIZ_CLIENT_REGISTER", () => {
+    socketRef.current.on("WS-EVN_BIZ_CLIENT_REGISTERED", () => {
       onClientRegisterBz(bzData__static.current.data.id);
     });
 
-    socketRef.current.on("WS-EVN_BIZ_STATUS_FLIP", (dx) => {
+    socketRef.current.on("WS-EVN_BIZ_CLIENT_REGISTERED_TO_TIMESLOT", () => {
+      onClientRegisterTimeslot(bzData__static.current.data.id);
+    });
+
+    socketRef.current.on("WS-EVN_BIZ_SUPPLIER_UPDATED", () => {
+      console.log("HELLO");
       onClientRegisterTimeslot(bzData__static.current.data.id);
     });
 

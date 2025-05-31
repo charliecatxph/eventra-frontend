@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import {
   Building,
@@ -26,6 +26,7 @@ import { countriesKV } from "@/lib/constants/countries";
 import { useModal } from "@/components/Modal/ModalContext";
 import moment from "moment";
 import TimeslotModal from "./TimeslotModal";
+import io, { Socket } from "socket.io-client";
 
 interface Supplier {
   attendeeStatus: {
@@ -76,6 +77,8 @@ export default function ViewAllSuppliers() {
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierData | null>(
     null
   );
+
+  const socketRef = useRef<Socket | null>(null);
 
   const fetchTimeslots = async (
     supplierId: string,
@@ -349,6 +352,30 @@ export default function ViewAllSuppliers() {
         setIsTimesheetFetching(false);
       });
   }, [bizData.user.id, bizData.user.bizmatcheventId, showSchedule]);
+
+  useEffect(() => {
+    if (!bizData.user.bizmatcheventId) return;
+
+    const socket = io(process.env.NEXT_PUBLIC_IO, {
+      withCredentials: true,
+    });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      socket.emit("identify", {
+        type: "EVN-BIZ_CLIENT",
+        bzId: bizData.user.bizmatcheventId,
+      });
+    });
+
+    socket.on("WS-EVN_BIZ_EVENT_UPDATED", () => {
+      window.location.reload();
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, [bizData.user.bizmatcheventId]);
 
   return (
     <>

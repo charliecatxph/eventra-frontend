@@ -379,7 +379,7 @@ export default function Login() {
               >
                 <TextInput
                   identifier="name"
-                  title="Your Name"
+                  title="List of Names"
                   value={bizData.form.data.name.value}
                   onInput={(dx) => {
                     dispatch(
@@ -393,6 +393,7 @@ export default function Login() {
                     );
                   }}
                   error={bizData.form.data.name.err}
+                  placeholder="John Doe, John Roe, ..."
                   req
                 />
                 <TextInput
